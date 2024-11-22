@@ -24,6 +24,10 @@ Performance requirements:
 2. The ability to store up to 10e9 links
 3. Service availability 0.99
 
+Hardware:
+1) Raspberry Pi5 8gb + SSD m2 Samsung 980 500GB
+2) Radxa  Rock 4a + SSD m2 A DATA xpg 128GB
+3) HP Mini PC 800 g1(I'll describe the details later)
 
 
 ## Commit design style
