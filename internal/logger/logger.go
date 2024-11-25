@@ -11,6 +11,7 @@ type Logger struct {
 }
 
 const (
+	TEST  = 10
 	DEBUG = iota
 	INFO
 	WARNING
@@ -23,6 +24,8 @@ func NewLogger(LogLevel string) *Logger {
 		log: log.New(os.Stdout, "", log.LstdFlags),
 	}
 	switch LogLevel {
+	case "test", "TEST", "Test":
+		l.LogLevel = TEST
 	case "debug", "DEBUG", "Debug":
 		l.LogLevel = DEBUG
 	case "info", "INFO", "Info":
