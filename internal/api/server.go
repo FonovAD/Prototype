@@ -11,7 +11,7 @@ type server struct {
 	logger *logger.Logger
 }
 
-func newServer(LogLevel string) *server {
+func NewServer(LogLevel string) *server {
 	s := &server{
 		router: http.NewServeMux(),
 		logger: logger.NewLogger(LogLevel),
@@ -24,4 +24,6 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
-func (s *server) ConfigureRouter() {}
+func (s *server) ConfigureRouter() {
+	s.router.HandleFunc("/hello", s.HandleHello())
+}
