@@ -10,10 +10,10 @@ import (
 type server struct {
 	router        *http.ServeMux
 	logger        *logger.Logger
-	metricMonitor *metric.MetricMonitor
+	metricMonitor metric.Monitor
 }
 
-func NewServer(logger *logger.Logger, metricMonitor *metric.MetricMonitor) *server {
+func NewServer(logger *logger.Logger, metricMonitor metric.Monitor) *server {
 	s := &server{
 		router:        http.NewServeMux(),
 		logger:        logger,
@@ -31,7 +31,7 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/hello", s.HandleHello())
 }
 
-func API(logLevel, serverAddr string) error {
+func Start(logLevel, serverAddr string) error {
 	serv := NewServer(logger.New(logLevel), metric.New())
 	return http.ListenAndServe(serverAddr, serv)
 }
