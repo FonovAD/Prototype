@@ -4,17 +4,20 @@ import (
 	"net/http"
 
 	"github.com/FonovAD/Prototype/internal/logger"
+	"github.com/FonovAD/Prototype/internal/metric"
 )
 
 type server struct {
-	router *http.ServeMux
-	logger *logger.Logger
+	router        *http.ServeMux
+	logger        *logger.Logger
+	metricMonitor *metric.MetricMonitor
 }
 
-func NewServer(LogLevel string) *server {
+func NewServer(logger *logger.Logger, metricMonitor *metric.MetricMonitor) *server {
 	s := &server{
-		router: http.NewServeMux(),
-		logger: logger.NewLogger(LogLevel),
+		router:        http.NewServeMux(),
+		logger:        logger,
+		metricMonitor: metricMonitor,
 	}
 	s.ConfigureRouter()
 	return s
@@ -26,4 +29,9 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/hello", s.HandleHello())
+}
+
+func API(logLevel, serverAddr string) error {
+	serv := NewServer(logger.New(logLevel), metric.New())
+	return http.ListenAndServe(serverAddr, serv)
 }
