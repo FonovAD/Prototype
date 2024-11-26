@@ -19,7 +19,7 @@ const (
 	FATAL
 )
 
-func NewLogger(LogLevel string) *Logger {
+func New(LogLevel string) *Logger {
 	l := &Logger{
 		log: log.New(os.Stdout, "", log.LstdFlags),
 	}

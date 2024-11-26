@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/FonovAD/Proto/internal/models"
+	"github.com/FonovAD/Prototype/internal/models"
 )
 
 type UserRepository interface {
@@ -15,7 +15,7 @@ type UserRepository interface {
 type LinkRepository interface {
 	Create() (models.Link, error)
 	GetByUID(int) ([]models.Link, error)
-	GetByOriginLink(string) (models.Link, error)
+	GetByOriginLink(string) ([]models.Link, error)
 	Delete(string) error
 	ReActivate(string) error
 }
