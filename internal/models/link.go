@@ -22,7 +22,8 @@ var (
 )
 
 func (l *Link) Validate() error {
-	if l.OriginLink > MAX_ORIGIN_LINK_LENGTH || l.OriginLink < MIN_ORIGIN_LINK_LENGTH {
+	if len(l.OriginLink) > MAX_ORIGIN_LINK_LENGTH || len(l.OriginLink) < MIN_ORIGIN_LINK_LENGTH {
 		return OriginLinkLengthErr
 	}
+	return nil
 }

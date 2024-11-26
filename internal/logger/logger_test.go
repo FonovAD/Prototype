@@ -24,7 +24,7 @@ func TestNewLogger(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := NewLogger(tt.logLevel)
+			logger := New(tt.logLevel)
 			if logger.LogLevel != tt.expected {
 				t.Errorf("expected log level %d, got %d", tt.expected, logger.LogLevel)
 			}

@@ -9,10 +9,12 @@ import (
 	"testing"
 
 	"github.com/FonovAD/Prototype/internal/api"
+	"github.com/FonovAD/Prototype/internal/logger"
+	"github.com/FonovAD/Prototype/internal/metric"
 )
 
 func BenchmarkServer_Hello(b *testing.B) {
-	s := api.NewServer("test")
+	s := api.NewServer(logger.New("test"), metric.NewTest())
 	payload := map[string]interface{}{
 		"message": "hello!",
 	}

@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/FonovAD/Prototype/internal/logger"
+	"github.com/FonovAD/Prototype/internal/metric"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +37,7 @@ func TestServer_Hello(t *testing.T) {
 		},
 	}
 
-	s := NewServer("Debug")
+	s := NewServer(logger.New("debug"), metric.NewTest())
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()

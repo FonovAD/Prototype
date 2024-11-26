@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,7 +13,7 @@ type MetricMonitor struct {
 	errorCount     *prometheus.CounterVec
 }
 
-func New() *MetricMonitor {
+func New() Monitor {
 	requestsTotal := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "app_requests_total",
@@ -41,8 +42,8 @@ func New() *MetricMonitor {
 	}
 }
 
-func (m *MetricMonitor) IncRequestsTotal(method, status string) {
-	m.requestsTotal.WithLabelValues(method, status).Inc()
+func (m *MetricMonitor) IncRequestsTotal(method string, status int) {
+	m.requestsTotal.WithLabelValues(method, fmt.Sprint(status)).Inc()
 }
 
 func (m *MetricMonitor) IncRequestLatency(method, path string, duration float64) {
