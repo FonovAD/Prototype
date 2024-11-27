@@ -1,21 +1,24 @@
 package store
 
 import (
+	"context"
+
 	"github.com/FonovAD/Prototype/internal/models"
 )
 
 type UserRepository interface {
-	Create() (models.User, error)
-	GetByUID(int) (models.User, error)
-	GetByRole(string) ([]models.User, error)
-	CheckByToken(string) (bool, error)
-	Delete(int) error
+	Create(context.Context) (models.User, error)
+	GetByUID(context.Context, int) (models.User, error)
+	GetByRole(context.Context, string) ([]models.User, error)
+	CheckByToken(context.Context, string) (bool, error)
+	// TODO: add user deletion by any uniq parameter: Users have a unique uid and token.
+	Delete(context.Context, int) error
 }
 
 type LinkRepository interface {
-	Create() (models.Link, error)
-	GetByUID(int) ([]models.Link, error)
-	GetByOriginLink(string) ([]models.Link, error)
-	Delete(string) error
-	ReActivate(string) error
+	Create(context.Context) (models.Link, error)
+	GetByUID(context.Context, int) ([]models.Link, error)
+	GetByOriginLink(context.Context, string) ([]models.Link, error)
+	Delete(context.Context, string) error
+	ReActivate(context.Context, string) error
 }
