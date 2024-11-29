@@ -7,16 +7,16 @@ import (
 )
 
 type UserRepository interface {
-	Create(context.Context) (models.User, error)
-	GetByUID(context.Context, int) (models.User, error)
-	GetByRole(context.Context, string) ([]models.User, error)
+	Create(context.Context) (*models.User, error)
+	GetByUID(context.Context, int) (*models.User, error)
+	GetByRole(context.Context, string, int, int) ([]models.User, error)
 	CheckByToken(context.Context, string) (bool, error)
 	// TODO: add user deletion by any uniq parameter: Users have a unique uid and token.
-	Delete(context.Context, int) error
+	Delete(context.Context, interface{}) error
 }
 
 type LinkRepository interface {
-	Create(context.Context) (models.Link, error)
+	Create(context.Context) (*models.Link, error)
 	GetByUID(context.Context, int) ([]models.Link, error)
 	GetByOriginLink(context.Context, string) ([]models.Link, error)
 	Delete(context.Context, string) error

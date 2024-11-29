@@ -10,8 +10,8 @@ type LinkRepository struct {
 	store *Store
 }
 
-func (l *LinkRepository) Create(ctx context.Context) (models.Link, error) {
-	return models.Link{}, nil
+func (l *LinkRepository) Create(ctx context.Context) (*models.Link, error) {
+	return &models.Link{}, nil
 }
 func (l *LinkRepository) GetByUID(ctx context.Context, uid int) ([]models.Link, error) {
 	return make([]models.Link, 5), nil
