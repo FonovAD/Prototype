@@ -2,14 +2,23 @@ package sqlstore
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/FonovAD/Prototype/internal/store"
 )
 
 type Store struct {
-	db       *sql.DB
-	userRepo *UserRepository
-	linkRepo *LinkRepository
+	db           *sql.DB
+	userRepo     *UserRepository
+	linkRepo     *LinkRepository
+	QueryTimeout time.Duration
+}
+
+func New(db *sql.DB, QueryTimeout time.Duration) *Store {
+	return &Store{
+		db:           db,
+		QueryTimeout: QueryTimeout,
+	}
 }
 
 func (s *Store) User() store.UserRepository {
