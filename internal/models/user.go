@@ -1,10 +1,18 @@
 package models
 
-import "errors"
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+)
 
 const (
 	MAX_ROLE_LENGHT  = 10
 	MAX_TOKEN_LENGHT = 64
+
+	ROLE_ADMIN  = "admin"
+	ROLE_USER   = "user"
+	ROLE_BANNED = "banned"
 )
 
 type User struct {
@@ -26,4 +34,12 @@ func (u *User) Validate() error {
 		return TokenLengthErr
 	}
 	return nil
+}
+
+func CreateToken(length int) string {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(bytes)
 }
