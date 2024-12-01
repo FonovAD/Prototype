@@ -10,6 +10,7 @@ type UserRepository interface {
 	Create(context.Context) (*models.User, error)
 	GetByUID(context.Context, int) (*models.User, error)
 	GetByRole(context.Context, string, int, int) ([]models.User, error)
+	GetByToken(context.Context, string) (*models.User, error)
 	CheckByToken(context.Context, string) (bool, error)
 	// TODO: add user deletion by any uniq parameter: Users have a unique uid and token.
 	Delete(context.Context, interface{}) error

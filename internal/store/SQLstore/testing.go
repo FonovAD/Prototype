@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"testing"
 
@@ -33,18 +34,19 @@ func TestDB(t *testing.T, databasePath string) (*sql.DB, func(...string)) {
 
 func SetupTestDB(t *testing.T) (*sql.DB, func(...string)) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "./test")
+	databasePath := "./test"
+	db, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}
 	schema := `
-CREATE TABLE users(
+CREATE TABLE IF NOT EXISTS users(
 UID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 Token TEXT NOT NULL,
 Role varchar(10) NOT NULL
 );
 
-CREATE TABLE links(
+CREATE TABLE IF NOT EXISTS links(
 UID INTEGER REFERENCES users(UID) ON DELETE CASCADE,
 OriginLink TEXT NOT NULL,
 ShortLink TEXT,
@@ -66,5 +68,9 @@ ScheduledDeletionTime TIMESTAMP
 			}
 		}
 		db.Close()
+		err := os.Remove(databasePath)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }

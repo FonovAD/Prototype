@@ -28,6 +28,7 @@ func (u *UserRepository) Create(ctx context.Context) (*models.User, error) {
 	}
 	return user, nil
 }
+
 func (u *UserRepository) GetByUID(ctx context.Context, uid int) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.store.QueryTimeout)
 	defer cancel()
@@ -39,12 +40,31 @@ func (u *UserRepository) GetByUID(ctx context.Context, uid int) (*models.User, e
 		user.UID,
 	).Scan(
 		&user.Token,
-		user.Role,
+		&user.Role,
 	); err != nil {
 		return &models.User{}, err
 	}
 	return user, nil
 }
+
+func (u *UserRepository) GetByToken(ctx context.Context, token string) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, u.store.QueryTimeout)
+	defer cancel()
+	user := &models.User{
+		Token: token,
+	}
+	if err := u.store.db.QueryRowContext(ctx,
+		"SELECT UID, Role FROM users WHERE Token = $1",
+		user.Token,
+	).Scan(
+		&user.UID,
+		&user.Role,
+	); err != nil {
+		return &models.User{}, err
+	}
+	return user, nil
+}
+
 func (u *UserRepository) GetByRole(ctx context.Context, role string, limit int, offset int) ([]models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.store.QueryTimeout)
 	defer cancel()
@@ -69,6 +89,7 @@ func (u *UserRepository) GetByRole(ctx context.Context, role string, limit int, 
 	}
 	return users, nil
 }
+
 func (u *UserRepository) CheckByToken(ctx context.Context, token string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.store.QueryTimeout)
 	defer cancel()
@@ -84,6 +105,7 @@ func (u *UserRepository) CheckByToken(ctx context.Context, token string) (bool, 
 	}
 	return false, nil
 }
+
 func (u *UserRepository) Delete(ctx context.Context, unique interface{}) error {
 	ctx, cancel := context.WithTimeout(ctx, u.store.QueryTimeout)
 	defer cancel()
