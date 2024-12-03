@@ -1,20 +1,33 @@
 package models
 
-import "errors"
+import (
+	"errors"
+	"math/rand"
+	"regexp"
+	"time"
+)
 
 const (
 	MAX_ORIGIN_LINK_LENGTH = 255
 	MIN_ORIGIN_LINK_LENGTH = 0
 )
 
+const (
+	STATUS_ACTIVE  = "active"
+	STATUS_EXPIRED = "expired"
+	STATUS_DELETED = "deleted"
+)
+
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 type Link struct {
 	UID                   int    `json:"uid"`
 	OriginLink            string `json:"origin_link"`
 	ShortLink             string `json:"short_link"`
-	CreateTime            int    `json:"create_time"`
-	ExpireTime            int    `json:"expire_time"`
+	CreateTime            int64  `json:"create_time"`
+	ExpireTime            int64  `json:"expire_time"`
 	Status                string `json:"status"`
-	ScheduledDeletionTime int    `json:"scheduled_deletion_time"`
+	ScheduledDeletionTime int64  `json:"scheduled_deletion_time"`
 }
 
 var (
@@ -26,4 +39,18 @@ func (l *Link) Validate() error {
 		return OriginLinkLengthErr
 	}
 	return nil
+}
+
+func IsValidURL(url string) bool {
+	regex := regexp.MustCompile(`^(http|https|ftp)://[a-zA-Z0-9\-+&@#/%?=~_|!:,.;]*[a-zA-Z0-9\-+&@#/%=~_|]$`)
+	return regex.MatchString(url)
+}
+
+func GenerateShortLink(length int) string {
+	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	bytes := make([]byte, length)
+	for i := range bytes {
+		bytes[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(bytes)
 }
