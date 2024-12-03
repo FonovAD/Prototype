@@ -17,9 +17,10 @@ type UserRepository interface {
 }
 
 type LinkRepository interface {
-	Create(context.Context) (*models.Link, error)
-	GetByUID(context.Context, int) ([]models.Link, error)
-	GetByOriginLink(context.Context, string) ([]models.Link, error)
+	Create(context.Context, int, string, string) (*models.Link, error)
+	GetByUID(context.Context, int) ([]*models.Link, error)
+	GetByOriginLink(context.Context, string) (*models.Link, error)
+	ShortLinkExist(context.Context, string) (bool, error)
 	Delete(context.Context, string) error
 	ReActivate(context.Context, string) error
 }
