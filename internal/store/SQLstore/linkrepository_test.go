@@ -71,6 +71,26 @@ func TestLinkRepository_GetByOriginLink(t *testing.T) {
 	assert.EqualValues(t, expectedl, l)
 }
 
+func TestLinkRepository_GetByShortLink(t *testing.T) {
+	// databasePath := "./test"
+	db, teardown := sqlstore.SetupTestDB(t)
+	defer teardown("users", "links")
+	s := sqlstore.New(db, time.Millisecond*100)
+	ctxb := context.Background()
+
+	u, err := s.User().Create(ctxb)
+	assert.NoError(t, err)
+
+	originLink := "http://hello.world"
+	shortLink := "http://world.hello"
+	expectedl, err := s.Link().Create(ctxb, u.UID, originLink, shortLink)
+	assert.NoError(t, err)
+
+	l, err := s.Link().GetByShortLink(ctxb, shortLink)
+	assert.NoError(t, err)
+	assert.EqualValues(t, expectedl, l)
+}
+
 func TestLinkRepository_ShortLinkExist(t *testing.T) {
 	// databasePath := "./test"
 	db, teardown := sqlstore.SetupTestDB(t)

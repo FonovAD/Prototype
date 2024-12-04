@@ -15,6 +15,7 @@ type LinkRepository struct {
 	DelDuration time.Duration
 }
 
+// Заменить вызов двух функций на транзакцию
 func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string, preferredLink string) (*models.Link, error) {
 	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
 	defer cancel()
@@ -94,6 +95,27 @@ func (l *LinkRepository) GetByOriginLink(ctx context.Context, originLink string)
 	if err := l.store.db.QueryRowContext(ctx,
 		"SELECT * FROM links WHERE OriginLink = $1;",
 		originLink,
+	).Scan(
+		&link.UID,
+		&link.OriginLink,
+		&link.ShortLink,
+		&link.CreateTime,
+		&link.ExpireTime,
+		&link.Status,
+		&link.ScheduledDeletionTime,
+	); err != nil {
+		return nil, err
+	}
+	return link, nil
+}
+
+func (l *LinkRepository) GetByShortLink(ctx context.Context, shortLink string) (*models.Link, error) {
+	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
+	defer cancel()
+	link := &models.Link{}
+	if err := l.store.db.QueryRowContext(ctx,
+		"SELECT * FROM links WHERE ShortLink = $1;",
+		shortLink,
 	).Scan(
 		&link.UID,
 		&link.OriginLink,
