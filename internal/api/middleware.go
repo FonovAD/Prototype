@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -27,6 +26,5 @@ func (s *server) Logging(next http.Handler) http.Handler {
 		next.ServeHTTP(lrw, req)
 		s.metricMonitor.IncRequestsTotal(req.Method, lrw.statusCode)
 		s.metricMonitor.IncRequestLatency(req.Method, req.URL.Path, time.Since(start).Seconds())
-		fmt.Println(w.Header()["status_code"])
 	})
 }
