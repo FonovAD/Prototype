@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
@@ -44,30 +45,49 @@ func New(LogLevel string) *Logger {
 
 func (l *Logger) Debug(args ...interface{}) {
 	if l.LogLevel == DEBUG {
-		l.log.Println(args...)
+		mes := []string{"DEBUG: "}
+		for _, v := range args {
+			mes = append(mes, fmt.Sprint(v, " "))
+		}
+		l.log.Print(mes)
 	}
 }
 
 func (l *Logger) Info(args ...interface{}) {
 	if l.LogLevel <= INFO {
-		l.log.Println(args...)
+		mes := []string{"INFO: "}
+		for _, v := range args {
+			mes = append(mes, fmt.Sprint(v, " "))
+		}
+		l.log.Print(mes)
 	}
 }
 
 func (l *Logger) Warning(args ...interface{}) {
 	if l.LogLevel <= WARNING {
-		l.log.Println(args...)
+		mes := []string{"WARNING: "}
+		for _, v := range args {
+			mes = append(mes, fmt.Sprint(v, " "))
+		}
+		l.log.Print(mes)
 	}
 }
 
 func (l *Logger) Error(args ...interface{}) {
 	if l.LogLevel <= ERROR {
-		l.log.Println(args...)
+		mes := []string{"ERROR: "}
+		for _, v := range args {
+			mes = append(mes, fmt.Sprint(v, " "))
+		}
+		l.log.Print(mes)
 	}
 }
-
 func (l *Logger) Fatal(args ...interface{}) {
 	if l.LogLevel <= FATAL {
-		l.log.Println(args...)
+		mes := []string{"FATAL: "}
+		for _, v := range args {
+			mes = append(mes, fmt.Sprint(v, " "))
+		}
+		l.log.Print(mes)
 	}
 }
