@@ -27,7 +27,7 @@ func TestLinkRepository_Create(t *testing.T) {
 	assert.Equal(t, shortLink, l.ShortLink)
 
 	l, err = s.Link().Create(ctxb, u.UID, originLink, "")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestLinkRepository_GetByUID(t *testing.T) {

@@ -15,6 +15,11 @@ type LinkRepository struct {
 	DelDuration time.Duration
 }
 
+var (
+	InvalidLinkError = errors.New("The passed link is not valid")
+	ExistLinkError   = errors.New("The desired link already exists")
+)
+
 // Заменить вызов двух функций на транзакцию
 func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string, preferredLink string) (*models.Link, error) {
 	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
@@ -37,8 +42,11 @@ func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string,
 				Status:                models.STATUS_ACTIVE,
 				ScheduledDeletionTime: time.Now().Add(l.DelDuration).Unix(),
 			}
-			if _, err := l.store.db.ExecContext(ctx,
-				"INSERT INTO links (UID, OriginLink, ShortLink, CreatedAt, ExpirationTime, Status, ScheduledDeletionTime) VALUES ($1, $2, $3, $4, $5, $6, $7);",
+			CreatedLink := &models.Link{}
+			_, err := l.store.db.ExecContext(ctx,
+				`INSERT INTO links (UID, OriginLink, ShortLink, CreatedAt, ExpirationTime, Status, ScheduledDeletionTime)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)
+				ON CONFLICT(OriginLink) DO NOTHING;`,
 				newLink.UID,
 				newLink.OriginLink,
 				newLink.ShortLink,
@@ -46,15 +54,30 @@ func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string,
 				newLink.ExpireTime,
 				newLink.Status,
 				newLink.ScheduledDeletionTime,
-			); err != nil {
-				return nil, err
+			)
+			if err != nil {
+				return nil, fmt.Errorf("error inserting record: %w", err)
 			}
-			return newLink, nil
+			err = l.store.db.QueryRowContext(ctx,
+				`SELECT UID, OriginLink, ShortLink, CreatedAt, ExpirationTime, Status, ScheduledDeletionTime
+				FROM links
+				WHERE OriginLink = $1;`,
+				newLink.OriginLink,
+			).Scan(
+				&CreatedLink.UID,
+				&CreatedLink.OriginLink,
+				&CreatedLink.ShortLink,
+				&CreatedLink.CreateTime,
+				&CreatedLink.ExpireTime,
+				&CreatedLink.Status,
+				&CreatedLink.ScheduledDeletionTime,
+			)
+			return CreatedLink, nil
 		} else {
-			return nil, errors.New("The desired link already exists")
+			return nil, ExistLinkError
 		}
 	} else {
-		return nil, errors.New("The passed link is not valid")
+		return nil, InvalidLinkError
 	}
 }
 
