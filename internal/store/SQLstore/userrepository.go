@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/FonovAD/Prototype/internal/models"
 )
@@ -53,13 +54,16 @@ func (u *UserRepository) GetByToken(ctx context.Context, token string) (*models.
 	user := &models.User{
 		Token: token,
 	}
-	if err := u.store.db.QueryRowContext(ctx,
+	err := u.store.db.QueryRowContext(ctx,
 		"SELECT UID, Role FROM users WHERE Token = $1",
 		user.Token,
 	).Scan(
 		&user.UID,
 		&user.Role,
-	); err != nil {
+	)
+	if err == sql.ErrNoRows {
+		return &models.User{}, nil
+	} else if err != nil {
 		return &models.User{}, err
 	}
 	return user, nil

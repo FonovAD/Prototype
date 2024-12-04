@@ -11,7 +11,7 @@ import (
 
 func TestLinkRepository_Create(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -32,7 +32,7 @@ func TestLinkRepository_Create(t *testing.T) {
 
 func TestLinkRepository_GetByUID(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -53,7 +53,7 @@ func TestLinkRepository_GetByUID(t *testing.T) {
 
 func TestLinkRepository_GetByOriginLink(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -73,7 +73,7 @@ func TestLinkRepository_GetByOriginLink(t *testing.T) {
 
 func TestLinkRepository_GetByShortLink(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -93,7 +93,7 @@ func TestLinkRepository_GetByShortLink(t *testing.T) {
 
 func TestLinkRepository_ShortLinkExist(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -113,7 +113,7 @@ func TestLinkRepository_ShortLinkExist(t *testing.T) {
 
 func TestLinkRepository_Delete(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
