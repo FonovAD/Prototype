@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/FonovAD/Prototype/internal/models"
+	sqlstore "github.com/FonovAD/Prototype/internal/store/SQLstore"
 )
 
 func (s *server) HandleHello() http.HandlerFunc {
@@ -45,13 +46,11 @@ func (s *server) CreateUser() http.HandlerFunc {
 		}
 
 		token := auth[1]
-		fmt.Println(token)
 		user, err := s.store.User().GetByToken(r.Context(), token)
 		if err != nil {
 			s.ServerError(w, r, err)
 			return
 		}
-		fmt.Println(user)
 		if user == nil || user.Role != models.ROLE_ADMIN {
 			w.WriteHeader(http.StatusForbidden)
 			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
@@ -75,10 +74,68 @@ func (s *server) CreateUser() http.HandlerFunc {
 	}
 }
 
+func (s *server) CreateLink() http.HandlerFunc {
+	type request struct {
+		Link string `json:"origin_link"`
+	}
+	type response struct {
+		ShortLink string `json:"short_link"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		auth := strings.Split(r.Header.Get("Authorization"), " ")
+		if len(auth) < 2 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.logger.Info(r.Method, r.RemoteAddr, http.StatusUnprocessableEntity, err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		token := auth[1]
+		user, err := s.store.User().GetByToken(r.Context(), token)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		if user == nil {
+			w.WriteHeader(http.StatusForbidden)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+			return
+		}
+		NewLink, err := s.store.Link().Create(r.Context(), user.UID, req.Link, "")
+		if err == sqlstore.InvalidLinkError {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusUnprocessableEntity)
+			return
+		} else if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		resp := response{
+			ShortLink: fmt.Sprintf("http://%s/%s", s.serverAddr, NewLink.ShortLink),
+		}
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func (s *server) Link() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		path := r.URL.Query().Get("path")
+		path := r.PathValue("path")
 		if path == "" {
 			s.logger.Info(r.Method, r.URL.Path, "Path is empty")
 			w.WriteHeader(http.StatusBadRequest)
@@ -88,6 +145,7 @@ func (s *server) Link() http.HandlerFunc {
 		linkModel, err := s.store.Link().GetByShortLink(r.Context(), path)
 		if err != nil {
 			s.ServerError(w, r, err)
+			return
 		}
 		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		http.Redirect(w, r, linkModel.OriginLink, http.StatusFound)

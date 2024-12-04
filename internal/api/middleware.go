@@ -19,7 +19,7 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.ResponseWriter.WriteHeader(code)
 }
 
-func (s *server) Logging(next http.Handler) http.Handler {
+func (s *server) WriteMetric(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 		lrw := NewLoggingResponseWriter(w)

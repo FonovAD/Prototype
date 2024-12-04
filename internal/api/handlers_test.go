@@ -11,6 +11,7 @@ import (
 
 	"github.com/FonovAD/Prototype/internal/logger"
 	"github.com/FonovAD/Prototype/internal/metric"
+	"github.com/FonovAD/Prototype/internal/models"
 	"github.com/FonovAD/Prototype/internal/store"
 	sqlstore "github.com/FonovAD/Prototype/internal/store/SQLstore"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func TestServer_Hello(t *testing.T) {
 	}
 	db, f := sqlstore.SetupTestDB(t, "test")
 	defer f()
-	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second))
+	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second), "127.0.0.1:80")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
@@ -96,7 +97,7 @@ func TestServer_CreateUser(t *testing.T) {
 	}
 	db, f := sqlstore.SetupTestDB(t, "test")
 	defer f()
-	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second))
+	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second), "127.0.0.1:80")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
@@ -105,6 +106,83 @@ func TestServer_CreateUser(t *testing.T) {
 
 			req, _ := http.NewRequest(tc.httpMethod, "/create_user", nil)
 			req.Header.Set("Authorization", "token "+token)
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
+
+func TestServer_CreateLink(t *testing.T) {
+	testCases := []struct {
+		name          string
+		expectedCode  int
+		httpMethod    string
+		payload       interface{}
+		preferredLink string
+		prepare       func(context.Context, store.Store) *models.User
+	}{
+		{
+			name:         "Base case",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) *models.User {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u
+			},
+		},
+		{
+			name:         "Unexpected http method",
+			expectedCode: http.StatusMethodNotAllowed,
+			httpMethod:   http.MethodGet,
+			payload: map[string]interface{}{
+				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) *models.User {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u
+			},
+		},
+		{
+			name:         "InvalidLink",
+			expectedCode: http.StatusUnprocessableEntity,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "invalidLink",
+			},
+			prepare: func(ctx context.Context, s store.Store) *models.User {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u
+			},
+		},
+	}
+	db, f := sqlstore.SetupTestDB(t, "test")
+	defer f()
+	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second), "127.0.0.1:80")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			ctxb := context.Background()
+			u := tc.prepare(ctxb, s.store)
+
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(tc.httpMethod, "/create_link", bytes.NewReader(body))
+			req.Header.Set("Authorization", "token "+u.Token)
 			s.ServeHTTP(rec, req)
 			assert.Equal(t, tc.expectedCode, rec.Code)
 		})

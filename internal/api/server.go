@@ -10,6 +10,7 @@ import (
 	"github.com/FonovAD/Prototype/internal/metric"
 	"github.com/FonovAD/Prototype/internal/store"
 	sqlstore "github.com/FonovAD/Prototype/internal/store/SQLstore"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type server struct {
@@ -17,14 +18,16 @@ type server struct {
 	logger        *logger.Logger
 	metricMonitor metric.Monitor
 	store         store.Store
+	serverAddr    string
 }
 
-func NewServer(logger *logger.Logger, metricMonitor metric.Monitor, store store.Store) *server {
+func NewServer(logger *logger.Logger, metricMonitor metric.Monitor, store store.Store, serverAddr string) *server {
 	s := &server{
 		router:        http.NewServeMux(),
 		logger:        logger,
 		metricMonitor: metricMonitor,
 		store:         store,
+		serverAddr:    serverAddr,
 	}
 	s.ConfigureRouter()
 	return s
@@ -37,11 +40,17 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/hello", s.HandleHello())
 	s.router.HandleFunc("/create_user", s.CreateUser())
+	s.router.HandleFunc("/create_link", s.CreateLink())
+	s.router.HandleFunc("/short/{path}", s.Link())
+
+	s.router.Handle("/metrics", promhttp.Handler())
 }
 
 func Start(logLevel, serverAddr string) error {
-	serv := NewServer(logger.New(logLevel), metric.New(), SetupDB())
-	return http.ListenAndServe(serverAddr, serv)
+	serv := NewServer(logger.New(logLevel), metric.New(), SetupDB(), serverAddr)
+	http.Handle("/metrics", promhttp.Handler())
+	servWithMiddleware := serv.WriteMetric(serv)
+	return http.ListenAndServe(serv.serverAddr, servWithMiddleware)
 }
 
 func SetupDB() store.Store {
@@ -66,7 +75,10 @@ CreatedAt integer,
 ExpirationTime integer NOT NULL,
 Status varchar(10) NOT NULL,
 ScheduledDeletionTime integer NOT NULL
-);`
+);
+
+INSERT INTO users(Token, Role) VALUES("test", "admin");
+`
 	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
 	}

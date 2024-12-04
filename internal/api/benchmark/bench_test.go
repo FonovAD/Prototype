@@ -21,7 +21,7 @@ import (
 )
 
 func BenchmarkServer_Hello(b *testing.B) {
-	s := api.NewServer(logger.New("debug"), metric.NewTest(), SetupDB())
+	s := api.NewServer(logger.New("debug"), metric.NewTest(), SetupDB(), "127.0.0.1:80")
 	payload := map[string]interface{}{
 		"message": "hello!",
 	}
@@ -50,7 +50,7 @@ func BenchmarkServer_CreateUser(b *testing.B) {
 	}
 	defer trace.Stop()
 
-	s := api.NewServer(logger.New("debug"), metric.NewTest(), SetupDB())
+	s := api.NewServer(logger.New("debug"), metric.NewTest(), SetupDB(), "127.0.0.1:80")
 	rec := httptest.NewRecorder()
 
 	for i := 0; i < b.N; i++ {
