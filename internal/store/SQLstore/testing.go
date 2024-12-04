@@ -32,7 +32,7 @@ func TestDB(t *testing.T, databasePath string) (*sql.DB, func(...string)) {
 	}
 }
 
-func SetupTestDB(t *testing.T) (*sql.DB, func(...string)) {
+func SetupTestDB(t *testing.T, tokenForAdmin string) (*sql.DB, func(...string)) {
 	t.Helper()
 	databasePath := "./test"
 	db, err := sql.Open("sqlite3", databasePath)
@@ -50,13 +50,16 @@ Role varchar(10) NOT NULL
 CREATE TABLE IF NOT EXISTS links(
 UID INTEGER REFERENCES users(UID) ON DELETE CASCADE,
 OriginLink TEXT UNIQUE NOT NULL,
-ShortLink TEXT,
+ShortLink TEXT UNIQUE NOT NULL,
 CreatedAt integer,
 ExpirationTime integer NOT NULL,
 Status varchar(10) NOT NULL,
 ScheduledDeletionTime integer NOT NULL
-);`
-	if _, err := db.Exec(schema); err != nil {
+);
+
+INSERT INTO users(Token, Role) VALUES("%s", "admin");
+`
+	if _, err := db.Exec(fmt.Sprintf(schema, tokenForAdmin)); err != nil {
 		t.Fatalf("Failed to setup test database schema: %v", err)
 	}
 	return db, func(tables ...string) {

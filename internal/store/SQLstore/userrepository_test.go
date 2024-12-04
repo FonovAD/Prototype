@@ -14,7 +14,7 @@ import (
 // INTEGRATION TESTS
 func TestUserRepository_Create(t *testing.T) {
 	// databasePath := "./test"
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -25,7 +25,7 @@ func TestUserRepository_Create(t *testing.T) {
 }
 
 func TestUserRepository_GetByUID(t *testing.T) {
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -40,7 +40,7 @@ func TestUserRepository_GetByUID(t *testing.T) {
 }
 
 func TestUserRepository_GetByRole(t *testing.T) {
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -60,7 +60,7 @@ func TestUserRepository_GetByRole(t *testing.T) {
 }
 
 func TestUserRepository_GetByToken(t *testing.T) {
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -74,7 +74,7 @@ func TestUserRepository_GetByToken(t *testing.T) {
 }
 
 func TestUserRepository_CheckByToken(t *testing.T) {
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
@@ -88,7 +88,7 @@ func TestUserRepository_CheckByToken(t *testing.T) {
 }
 
 func TestUserRepository_Delete(t *testing.T) {
-	db, teardown := sqlstore.SetupTestDB(t)
+	db, teardown := sqlstore.SetupTestDB(t, "test")
 	defer teardown("users", "links")
 	s := sqlstore.New(db, time.Millisecond*100)
 	ctxb := context.Background()
