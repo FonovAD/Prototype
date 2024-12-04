@@ -35,6 +35,9 @@ func New() Monitor {
 		},
 		[]string{"method", "path", "status"},
 	)
+
+	prometheus.MustRegister(requestsTotal, requestLatency, errorCount)
+
 	return &MetricMonitor{
 		requestsTotal:  requestsTotal,
 		requestLatency: requestLatency,
