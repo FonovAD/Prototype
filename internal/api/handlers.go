@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -149,5 +150,22 @@ func (s *server) Link() http.HandlerFunc {
 		}
 		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		http.Redirect(w, r, linkModel.OriginLink, http.StatusFound)
+	}
+}
+
+func (s *server) OutputHtml() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		tmpl, err := template.ParseFiles("firstUi.html")
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+
+		err = tmpl.Execute(w, r)
+		if err != nil {
+			s.ServerError(w, r, err)
+		}
+
 	}
 }

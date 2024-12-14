@@ -1,0 +1,49 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Shortener</title>
+    <script>
+        async function shortenLink() {
+            const token = document.getElementById('token').value;
+            const url = document.getElementById('originalUrl').value;
+            const shortenedUrlField = document.getElementById('shortenedUrl');
+
+            try {
+                const response = await fetch('http://namefor.ru/create_link', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `${token}`
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                shortenedUrlField.value = data.shortenedUrl || 'Error: No shortened URL returned';
+            } catch (error) {
+                shortenedUrlField.value = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</head>
+<body>
+    <form onsubmit="event.preventDefault(); shortenLink();">
+        <label for="token">Auth Token:</label><br>
+        <input type="text" id="token" name="token" required><br><br>
+
+        <label for="originalUrl">Your Link:</label><br>
+        <input type="text" id="originalUrl" name="originalUrl" required><br><br>
+
+        <button type="submit">Shorten Link</button><br><br>
+
+        <label for="shortenedUrl">Shortened Link:</label><br>
+        <input type="text" id="shortenedUrl" name="shortenedUrl" readonly><br><br>
+
+       
+    </form>
+</body>
+</html>

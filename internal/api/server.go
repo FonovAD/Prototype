@@ -43,6 +43,8 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/create_link", s.CreateLink())
 	s.router.HandleFunc("/short/{path}", s.Link())
 
+	s.router.HandleFunc("/", s.OutputHtml())
+
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
