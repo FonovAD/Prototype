@@ -167,5 +167,7 @@ func (s *server) OutputHtml() http.HandlerFunc {
 			s.ServerError(w, r, err)
 		}
 
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
 	}
 }
