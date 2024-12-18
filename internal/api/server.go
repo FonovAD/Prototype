@@ -18,16 +18,16 @@ type server struct {
 	logger        *logger.Logger
 	metricMonitor metric.Monitor
 	store         store.Store
-	serverAddr    string
+	url           string
 }
 
-func NewServer(logger *logger.Logger, metricMonitor metric.Monitor, store store.Store, serverAddr string) *server {
+func NewServer(logger *logger.Logger, metricMonitor metric.Monitor, store store.Store, URL string) *server {
 	s := &server{
 		router:        http.NewServeMux(),
 		logger:        logger,
 		metricMonitor: metricMonitor,
 		store:         store,
-		serverAddr:    serverAddr,
+		url:           URL,
 	}
 	s.ConfigureRouter()
 	return s
@@ -41,16 +41,16 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/hello", s.HandleHello())
 	s.router.HandleFunc("/create_user", s.CreateUser())
 	s.router.HandleFunc("/create_link", s.CreateLink())
-	s.router.HandleFunc("/short/{path}", s.Link())
+	s.router.HandleFunc("/{path}", s.Link())
 
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
-func Start(logLevel, serverAddr string) error {
-	serv := NewServer(logger.New(logLevel), metric.New(), SetupDB(), serverAddr)
+func Start(logLevel, serverAddr, URL string) error {
+	serv := NewServer(logger.New(logLevel), metric.New(), SetupDB(), URL)
 	http.Handle("/metrics", promhttp.Handler())
 	servWithMiddleware := serv.WriteMetric(serv)
-	return http.ListenAndServe(serv.serverAddr, servWithMiddleware)
+	return http.ListenAndServe(serverAddr, servWithMiddleware)
 }
 
 func SetupDB() store.Store {
@@ -59,27 +59,7 @@ func SetupDB() store.Store {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	schema := `
-PRAGMA foreign_keys = ON;
-CREATE TABLE IF NOT EXISTS users(
-UID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-Token TEXT NOT NULL,
-Role varchar(10) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS links(
-UID INTEGER REFERENCES users(UID) ON DELETE CASCADE,
-OriginLink TEXT UNIQUE NOT NULL,
-ShortLink TEXT UNIQUE NOT NULL,
-CreatedAt integer,
-ExpirationTime integer NOT NULL,
-Status varchar(10) NOT NULL,
-ScheduledDeletionTime integer NOT NULL
-);
-
-INSERT INTO users(Token, Role) VALUES("test", "admin");
-`
-	if _, err := db.Exec(schema); err != nil {
+	if _, err := db.Exec(sqlstore.Schema); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
 	}
 	return sqlstore.New(db, 1*time.Second)
