@@ -10,8 +10,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func PostgresMigration(path string, DB_user, DB_pass, DB_addr, DB_port, DB_name string) {
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", DB_user, DB_pass, DB_addr, DB_port, DB_name)
+func PostgresMigration(path string, dbUser, dbPass, dbAddr, dbPort, dbName string) {
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbAddr, dbPort, dbName)
 	sourceURL := fmt.Sprintf("file://%s", path)
 	m, err := migrate.New(sourceURL, databaseURL)
 	if err != nil {

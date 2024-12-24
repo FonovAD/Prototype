@@ -1,20 +1,30 @@
 package main
 
 import (
+	"log"
+
 	"github.com/FonovAD/Prototype/internal/api"
 	sqlstore "github.com/FonovAD/Prototype/internal/store/SQLstore"
 )
 
 func main() {
+	pgConf := api.PostgresConfig{
+		DBUser: "postgres",
+		DBPass: "postgres",
+		DBAddr: "db",
+		DBPort: "5432",
+		DBName: "linkshortener",
+	}
 	path := "./migrations"
-	DB_user := "aleksandr"
-	DB_pass := ""
-	DB_addr := "localhost"
-	DB_port := "5432"
-	DB_name := "linkshortener"
-	sqlstore.PostgresMigration(path, DB_user, DB_pass, DB_addr, DB_port, DB_name)
-
-	if err := api.Start("info", "127.0.0.1:80", "127.0.0.1:80"); err != nil {
+	sqlstore.PostgresMigration(path,
+		pgConf.DBUser,
+		pgConf.DBPass,
+		pgConf.DBAddr,
+		pgConf.DBPort,
+		pgConf.DBName,
+	)
+	log.Print("The database migration was successful.")
+	if err := api.Start("info", "0.0.0.0:80", "127.0.0.1:80", pgConf); err != nil {
 		panic(err)
 	}
 }
