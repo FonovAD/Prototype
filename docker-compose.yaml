@@ -1,0 +1,35 @@
+networks:
+  docker_net:
+    driver: bridge
+
+services:
+  back:
+    container_name: link_shortener
+    build: .
+    ports:
+      - "80:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - docker_net
+    
+  db:
+    image: postgres
+    container_name: db
+    ports:
+      - "5431:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=linkshortener
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docker_net
+
+

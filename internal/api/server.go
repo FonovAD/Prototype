@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -10,6 +12,7 @@ import (
 	"github.com/FonovAD/Prototype/internal/metric"
 	"github.com/FonovAD/Prototype/internal/store"
 	sqlstore "github.com/FonovAD/Prototype/internal/store/SQLstore"
+	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -46,8 +49,24 @@ func (s *server) ConfigureRouter() {
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
-func Start(logLevel, serverAddr, URL string) error {
-	serv := NewServer(logger.New(logLevel), metric.New(), SetupDB(), URL)
+type PostgresConfig struct {
+	DBUser string
+	DBPass string
+	DBAddr string
+	DBPort string
+	DBName string
+}
+
+func Start(logLevel, serverAddr, URL string, postgresParam PostgresConfig) error {
+	ctxb := context.Background()
+	serv := NewServer(logger.New(logLevel), metric.New(), InitPostgres(
+		ctxb,
+		postgresParam.DBUser,
+		postgresParam.DBPass,
+		postgresParam.DBAddr,
+		postgresParam.DBPort,
+		postgresParam.DBName,
+	), URL)
 	http.Handle("/metrics", promhttp.Handler())
 	servWithMiddleware := serv.WriteMetric(serv)
 	return http.ListenAndServe(serverAddr, servWithMiddleware)
@@ -61,6 +80,20 @@ func SetupDB() store.Store {
 	}
 	if _, err := db.Exec(sqlstore.Schema); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
+	}
+	return sqlstore.New(db, 1*time.Second)
+}
+
+func InitPostgres(ctxb context.Context, dbUser, dbPass, dbAddr, dbPort, dbName string) store.Store {
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbAddr, dbPort, dbName)
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(ctxb, 1*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		log.Fatalf("Failed to ping to database: %v", err)
 	}
 	return sqlstore.New(db, 1*time.Second)
 }
