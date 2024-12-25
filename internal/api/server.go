@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/FonovAD/Prototype/config"
 	"github.com/FonovAD/Prototype/internal/logger"
 	"github.com/FonovAD/Prototype/internal/metric"
 	"github.com/FonovAD/Prototype/internal/store"
@@ -45,40 +47,43 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/create_user", s.CreateUser())
 	s.router.HandleFunc("/create_link", s.CreateLink())
 	s.router.HandleFunc("/{path}", s.Link())
-
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
-type PostgresConfig struct {
-	DBUser string
-	DBPass string
-	DBAddr string
-	DBPort string
-	DBName string
-}
-
-func Start(logLevel, serverAddr, URL string, postgresParam PostgresConfig) error {
+func Start(cfg *config.Config, UseSQLite3 bool) error {
 	ctxb := context.Background()
-	serv := NewServer(logger.New(logLevel), metric.New(), InitPostgres(
-		ctxb,
-		postgresParam.DBUser,
-		postgresParam.DBPass,
-		postgresParam.DBAddr,
-		postgresParam.DBPort,
-		postgresParam.DBName,
-	), URL)
+	var db store.Store
+	if UseSQLite3 {
+		db = SetupDB(
+			cfg.SQLite3.Path,
+			cfg.SQLite3.Schema,
+		)
+	} else {
+		db = InitPostgres(
+			ctxb,
+			cfg.Postgres.User,
+			cfg.Postgres.Password,
+			cfg.Postgres.Host,
+			cfg.Postgres.Port,
+			cfg.Postgres.Database,
+		)
+	}
+	serv := NewServer(logger.New(cfg.API.LogLevel), metric.New(), db, cfg.API.URL)
 	http.Handle("/metrics", promhttp.Handler())
 	servWithMiddleware := serv.WriteMetric(serv)
-	return http.ListenAndServe(serverAddr, servWithMiddleware)
+	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.API.Host, cfg.API.Port), servWithMiddleware)
 }
 
-func SetupDB() store.Store {
-	databasePath := "./LinkShortener"
+func SetupDB(databasePath, schemaPath string) store.Store {
 	db, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	if _, err := db.Exec(sqlstore.Schema); err != nil {
+	schemaSQL, err := ioutil.ReadFile(schemaPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла схемы: %v", err)
+	}
+	if _, err := db.Exec(string(schemaSQL)); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
 	}
 	return sqlstore.New(db, 1*time.Second)
