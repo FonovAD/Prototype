@@ -1,15 +1,26 @@
-FROM golang:1.23.3-alpine3.20
+FROM golang:1.23-bookworm
+ENV CGO_ENABLED=1
 
+
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive \
+    apt-get install --no-install-recommends --assume-yes \
+      libsqlite3-0
 WORKDIR /app
 COPY go.* /app
 RUN go mod download
 
 COPY . /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main -v cmd/main.go
+RUN GOOS=linux go build -o /app/main -v cmd/main.go
 
-FROM alpine:3.20
+FROM golang:1.23-bookworm
+ENV CGO_ENABLED=1
 
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive \
+    apt-get install --no-install-recommends --assume-yes \
+      libsqlite3-0
 COPY --from=0 /app /bin/app
 WORKDIR /bin/app
 
