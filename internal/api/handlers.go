@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -121,7 +122,8 @@ func (s *server) CreateLink() http.HandlerFunc {
 			return
 		}
 		resp := response{
-			ShortLink: fmt.Sprintf("http://%s/%s", s.url, NewLink.ShortLink),
+			ShortLink: fmt.Sprintf("http://%s/short/%s", s.serverAddr, NewLink.ShortLink),
+
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			s.ServerError(w, r, err)
@@ -149,5 +151,24 @@ func (s *server) Link() http.HandlerFunc {
 		}
 		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		http.Redirect(w, r, linkModel.OriginLink, http.StatusFound)
+	}
+}
+
+func (s *server) OutputHtml() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		tmpl, err := template.ParseFiles("./internal/api/UI/firstUi.html")
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+
+		err = tmpl.Execute(w, r)
+		if err != nil {
+			s.ServerError(w, r, err)
+		}
+
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
 	}
 }

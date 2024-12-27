@@ -46,7 +46,11 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/hello", s.HandleHello())
 	s.router.HandleFunc("/create_user", s.CreateUser())
 	s.router.HandleFunc("/create_link", s.CreateLink())
-	s.router.HandleFunc("/{path}", s.Link())
+	s.router.HandleFunc("/short/{path}", s.Link())
+
+	s.router.HandleFunc("/", s.OutputHtml())
+
+
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 

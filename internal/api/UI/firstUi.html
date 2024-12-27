@@ -1,0 +1,80 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Shortener</title>
+</head>
+<body>
+    <h1>Link Shortener</h1>
+    <div>The functionality of this project is very simple: shortening long ugly links into smaller links.</div>
+    <div>To get an authorization token, contact GitHub:</div>
+    <a href="https://github.com/FonovAD/Prototype">https://github.com/FonovAD/Prototype</a><br><br>
+
+    <label for="token">Auth Token:</label><br>
+    <input type="text" id="token" name="token" required><br><br>
+
+    <label for="originalUrl">Your Link:</label><br>
+    <input type="text" id="originalUrl" name="originalUrl" required>
+    <button type="clear" id="clear">Clear</button><br><br>
+
+    <button type="submit" id="shorten_link">Shorten Link</button><br><br>
+
+    <label for="shortenedUrl">Shortened Link:</label><br>
+    <input type="text" id="shortenedUrl" name="shortenedUrl" readonly>
+    <button type="copy" id="copy">Copy</button><br><br>
+
+        
+</body>
+
+<script>
+    const shorten_button = document.getElementById('shorten_link');
+    const clear_buttoon = document.getElementById('clear');
+    const copy_buttoon = document.getElementById('copy');
+
+    const token = document.getElementById('token');
+    const url = document.getElementById('originalUrl');
+    const shortenedUrlField = document.getElementById('shortenedUrl');
+
+    shorten_button.addEventListener("click", shortenLink);
+    clear_buttoon.addEventListener("click", () => {
+        url.value = ''; 
+    });
+    copy_buttoon.addEventListener("click", () => {
+        navigator.clipboard.writeText(shortenedUrlField.value);
+    });
+
+
+    
+    async function shortenLink() {
+        try {
+            const response = await fetch('http://127.0.0.1:80/create_link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': ` Token ${token.value}`
+                },
+                body: JSON.stringify({ origin_link: url.value })
+            });
+
+            
+            if (!response.ok) {
+                if (response.status == '500'){
+                    throw new Error('Invalid token');
+                }
+                else{
+                    throw new Error(response.status);
+                }
+            }
+
+            const data = await response.json();
+            console.log(response.status);
+            console.log(response.json);
+            shortenedUrlField.value = data.short_link || 'Error: No shortened URL returned';
+        } catch (error) {
+            shortenedUrlField.value = `Error: ${error.message}`;
+        }
+    }
+
+
+</script>
+</html>
