@@ -43,10 +43,17 @@ func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string,
 				ScheduledDeletionTime: time.Now().Add(l.DelDuration).Unix(),
 			}
 			CreatedLink := &models.Link{}
-			_, err := l.store.db.ExecContext(ctx,
+			err := l.store.db.QueryRowContext(ctx,
 				`INSERT INTO links (UID, OriginLink, ShortLink, CreatedAt, ExpirationTime, Status, ScheduledDeletionTime)
 				VALUES ($1, $2, $3, $4, $5, $6, $7)
-				ON CONFLICT(OriginLink) DO NOTHING;`,
+				ON CONFLICT(UID, OriginLink) DO UPDATE 
+				SET 
+    				ShortLink = EXCLUDED.ShortLink,
+    				CreatedAt = EXCLUDED.CreatedAt,
+    				ExpirationTime = EXCLUDED.ExpirationTime,
+    				Status = EXCLUDED.Status,
+    				ScheduledDeletionTime = EXCLUDED.ScheduledDeletionTime
+				RETURNING UID, OriginLink, ShortLink, CreatedAt, ExpirationTime, Status, ScheduledDeletionTime;`,
 				newLink.UID,
 				newLink.OriginLink,
 				newLink.ShortLink,
@@ -54,15 +61,6 @@ func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string,
 				newLink.ExpireTime,
 				newLink.Status,
 				newLink.ScheduledDeletionTime,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("error inserting record: %w", err)
-			}
-			err = l.store.db.QueryRowContext(ctx,
-				`SELECT UID, OriginLink, ShortLink, CreatedAt, ExpirationTime, Status, ScheduledDeletionTime
-				FROM links
-				WHERE OriginLink = $1;`,
-				newLink.OriginLink,
 			).Scan(
 				&CreatedLink.UID,
 				&CreatedLink.OriginLink,
@@ -72,6 +70,9 @@ func (l *LinkRepository) Create(ctx context.Context, UID int, originLink string,
 				&CreatedLink.Status,
 				&CreatedLink.ScheduledDeletionTime,
 			)
+			if err != nil {
+				return nil, fmt.Errorf("error inserting record: %w", err)
+			}
 			return CreatedLink, nil
 		} else {
 			return nil, ExistLinkError

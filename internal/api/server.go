@@ -1,15 +1,20 @@
 package api
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/FonovAD/Prototype/config"
 	"github.com/FonovAD/Prototype/internal/logger"
 	"github.com/FonovAD/Prototype/internal/metric"
 	"github.com/FonovAD/Prototype/internal/store"
 	sqlstore "github.com/FonovAD/Prototype/internal/store/SQLstore"
+	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -18,16 +23,16 @@ type server struct {
 	logger        *logger.Logger
 	metricMonitor metric.Monitor
 	store         store.Store
-	serverAddr    string
+	url           string
 }
 
-func NewServer(logger *logger.Logger, metricMonitor metric.Monitor, store store.Store, serverAddr string) *server {
+func NewServer(logger *logger.Logger, metricMonitor metric.Monitor, store store.Store, URL string) *server {
 	s := &server{
 		router:        http.NewServeMux(),
 		logger:        logger,
 		metricMonitor: metricMonitor,
 		store:         store,
-		serverAddr:    serverAddr,
+		url:           URL,
 	}
 	s.ConfigureRouter()
 	return s
@@ -45,44 +50,59 @@ func (s *server) ConfigureRouter() {
 
 	s.router.HandleFunc("/", s.OutputHtml())
 
+
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
-func Start(logLevel, serverAddr string) error {
-	serv := NewServer(logger.New(logLevel), metric.New(), SetupDB(), serverAddr)
+func Start(cfg *config.Config, UseSQLite3 bool) error {
+	ctxb := context.Background()
+	var db store.Store
+	if UseSQLite3 {
+		db = SetupDB(
+			cfg.SQLite3.Path,
+			cfg.SQLite3.Schema,
+		)
+	} else {
+		db = InitPostgres(
+			ctxb,
+			cfg.Postgres.User,
+			cfg.Postgres.Password,
+			cfg.Postgres.Host,
+			cfg.Postgres.Port,
+			cfg.Postgres.Database,
+		)
+	}
+	serv := NewServer(logger.New(cfg.API.LogLevel), metric.New(), db, cfg.API.URL)
 	http.Handle("/metrics", promhttp.Handler())
 	servWithMiddleware := serv.WriteMetric(serv)
-	return http.ListenAndServe(serv.serverAddr, servWithMiddleware)
+	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.API.Host, cfg.API.Port), servWithMiddleware)
 }
 
-func SetupDB() store.Store {
-	databasePath := "./LinkShortener"
+func SetupDB(databasePath, schemaPath string) store.Store {
 	db, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	schema := `
-PRAGMA foreign_keys = ON;
-CREATE TABLE IF NOT EXISTS users(
-UID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-Token TEXT NOT NULL,
-Role varchar(10) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS links(
-UID INTEGER REFERENCES users(UID) ON DELETE CASCADE,
-OriginLink TEXT UNIQUE NOT NULL,
-ShortLink TEXT UNIQUE NOT NULL,
-CreatedAt integer,
-ExpirationTime integer NOT NULL,
-Status varchar(10) NOT NULL,
-ScheduledDeletionTime integer NOT NULL
-);
-
-INSERT INTO users(Token, Role) VALUES("test", "admin");
-`
-	if _, err := db.Exec(schema); err != nil {
+	schemaSQL, err := ioutil.ReadFile(schemaPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла схемы: %v", err)
+	}
+	if _, err := db.Exec(string(schemaSQL)); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
+	}
+	return sqlstore.New(db, 1*time.Second)
+}
+
+func InitPostgres(ctxb context.Context, dbUser, dbPass, dbAddr, dbPort, dbName string) store.Store {
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbAddr, dbPort, dbName)
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(ctxb, 1*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		log.Fatalf("Failed to ping to database: %v", err)
 	}
 	return sqlstore.New(db, 1*time.Second)
 }

@@ -66,27 +66,7 @@ func SetupDB() store.Store {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	schema := `
-PRAGMA foreign_keys = ON;
-CREATE TABLE IF NOT EXISTS users(
-UID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-Token TEXT NOT NULL,
-Role varchar(10) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS links(
-UID INTEGER REFERENCES users(UID) ON DELETE CASCADE,
-OriginLink TEXT UNIQUE NOT NULL,
-ShortLink TEXT UNIQUE NOT NULL,
-CreatedAt integer,
-ExpirationTime integer NOT NULL,
-Status varchar(10) NOT NULL,
-ScheduledDeletionTime integer NOT NULL
-);
-
-INSERT INTO users(Token, Role) VALUES("test", "admin");
-`
-	if _, err := db.Exec(schema); err != nil {
+	if _, err := db.Exec(sqlstore.Schema); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
 	}
 	return sqlstore.New(db, 1*time.Second)
