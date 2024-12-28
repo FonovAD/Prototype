@@ -47,10 +47,7 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/create_user", s.CreateUser())
 	s.router.HandleFunc("/create_link", s.CreateLink())
 	s.router.HandleFunc("/short/{path}", s.Link())
-
 	s.router.HandleFunc("/", s.OutputHtml())
-
-
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
@@ -73,8 +70,9 @@ func Start(cfg *config.Config, UseSQLite3 bool) error {
 		)
 	}
 	serv := NewServer(logger.New(cfg.API.LogLevel), metric.New(), db, cfg.API.URL)
-	http.Handle("/metrics", promhttp.Handler())
+	// http.Handle("/metrics", promhttp.Handler())
 	servWithMiddleware := serv.WriteMetric(serv)
+	log.Print("Server started with param: ", cfg)
 	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.API.Host, cfg.API.Port), servWithMiddleware)
 }
 
@@ -85,7 +83,7 @@ func SetupDB(databasePath, schemaPath string) store.Store {
 	}
 	schemaSQL, err := ioutil.ReadFile(schemaPath)
 	if err != nil {
-		log.Fatalf("Ошибка чтения файла схемы: %v", err)
+		log.Fatalf("Couldn't read the database schema: %v", err)
 	}
 	if _, err := db.Exec(string(schemaSQL)); err != nil {
 		log.Fatalf("Failed to setup test database schema: %v", err)
@@ -96,6 +94,8 @@ func SetupDB(databasePath, schemaPath string) store.Store {
 func InitPostgres(ctxb context.Context, dbUser, dbPass, dbAddr, dbPort, dbName string) store.Store {
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbAddr, dbPort, dbName)
 	db, err := sql.Open("postgres", databaseURL)
+	db.SetMaxOpenConns(80)
+	db.SetMaxIdleConns(20)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

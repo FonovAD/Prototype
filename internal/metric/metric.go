@@ -3,9 +3,12 @@ package metric
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+var once sync.Once
 
 type MetricMonitor struct {
 	requestsTotal  *prometheus.CounterVec
@@ -36,7 +39,9 @@ func New() Monitor {
 		[]string{"method", "path", "status"},
 	)
 
-	prometheus.MustRegister(requestsTotal, requestLatency, errorCount)
+	once.Do(func() {
+		prometheus.MustRegister(requestsTotal, requestLatency, errorCount)
+	})
 
 	return &MetricMonitor{
 		requestsTotal:  requestsTotal,

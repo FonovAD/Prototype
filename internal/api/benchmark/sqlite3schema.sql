@@ -16,4 +16,4 @@ ScheduledDeletionTime integer NOT NULL,
 PRIMARY KEY (UID, OriginLink)
 );
 
-INSERT INTO users(Token, Role) VALUES("test", "admin");
+INSERT INTO users(Token, Role) VALUES("%s", "admin");

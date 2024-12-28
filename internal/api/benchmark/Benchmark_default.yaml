@@ -1,0 +1,14 @@
+api:
+  port: 80
+  host: 0.0.0.0
+  log_level: debug
+  url: namefor.ru
+postgres:
+  host: db
+  user: postgres
+  port: 5432
+  passord: postgres
+  name: linkshortener
+sqlite3:
+  path: LinkShortener.db
+  schema: ./sqlite3schema.sql

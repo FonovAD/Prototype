@@ -122,8 +122,7 @@ func (s *server) CreateLink() http.HandlerFunc {
 			return
 		}
 		resp := response{
-			ShortLink: fmt.Sprintf("http://%s/short/%s", s.serverAddr, NewLink.ShortLink),
-
+			ShortLink: fmt.Sprintf("http://%s/short/%s", s.url, NewLink.ShortLink),
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			s.ServerError(w, r, err)
@@ -169,6 +168,5 @@ func (s *server) OutputHtml() http.HandlerFunc {
 		}
 
 		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
-		w.WriteHeader(http.StatusOK)
 	}
 }
