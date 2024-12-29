@@ -1,4 +1,6 @@
 PRAGMA foreign_keys = ON;
+PRAGMA journal_mode=WAL;
+PRAGMA cache_size=-1000;
 CREATE TABLE IF NOT EXISTS users(
 UID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 Token TEXT NOT NULL,
@@ -15,5 +17,7 @@ Status varchar(10) NOT NULL,
 ScheduledDeletionTime integer NOT NULL,
 PRIMARY KEY (UID, OriginLink)
 );
+
+CREATE INDEX ShortLink ON links(ShortLink);
 
 INSERT INTO users(Token, Role) VALUES("%s", "admin");
