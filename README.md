@@ -21,8 +21,9 @@ General requirements (+ must be in MVP):
 
 Performance requirements:
 1. RPS > 10k
-2. The ability to store up to 10e9 links
-3. Service availability 0.99
+2. Latency 200÷300µs
+3. The ability to store up to 10e9 links
+4. Service availability 0.99
 
 Hardware:
 1) Raspberry Pi5 8gb + SSD m2 Samsung 980 500GB
