@@ -1,93 +1,67 @@
 package logger
 
 import (
-	"fmt"
-	"log"
-	"os"
+	"net/http"
+	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Logger struct {
-	LogLevel int
-	log      *log.Logger
+	log *zap.Logger
 }
 
-const (
-	TEST  = 10
-	DEBUG = iota
-	INFO
-	WARNING
-	ERROR
-	FATAL
-)
-
-func New(LogLevel string) *Logger {
-	l := &Logger{
-		log: log.New(os.Stdout, "", log.LstdFlags),
-	}
-	switch LogLevel {
-	case "test", "TEST", "Test":
-		l.LogLevel = TEST
-	case "debug", "DEBUG", "Debug":
-		l.LogLevel = DEBUG
-	case "info", "INFO", "Info":
-		l.LogLevel = INFO
-	case "warning", "WARNING", "Warning":
-		l.LogLevel = WARNING
-	case "error", "ERROR", "Error":
-		l.LogLevel = ERROR
-	case "fatal", "FATAL", "Fatal":
-		l.LogLevel = FATAL
+func New(logLevel string) *Logger {
+	var level zap.AtomicLevel
+	switch logLevel {
+	case "debug", "DEBUG":
+		level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	case "info", "INFO":
+		level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	case "warn", "WARNING":
+		level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	case "error", "ERROR":
+		level = zap.NewAtomicLevelAt(zap.ErrorLevel)
 	default:
-		l.LogLevel = INFO
+		level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
-	return l
+
+	cfg := zap.Config{
+		Level:            level,
+		Encoding:         "json",
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+	}
+	cfg.EncoderConfig.TimeKey = "timestamp"
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger, _ := cfg.Build()
+	return &Logger{log: logger}
 }
 
-func (l *Logger) Debug(args ...interface{}) {
-	if l.LogLevel == DEBUG {
-		mes := []string{"DEBUG: "}
-		for _, v := range args {
-			mes = append(mes, fmt.Sprint(v, " "))
-		}
-		l.log.Print(mes)
+func (l *Logger) LogRequest(req *http.Request, statusCode int, duration time.Duration, err error) {
+	fields := []zap.Field{
+		zap.String("method", req.Method),
+		zap.String("uri", req.URL.Path),
+		zap.Int("status_code", statusCode),
+		zap.Duration("duration", duration),
+		zap.String("timestamp", time.Now().Format(time.RFC3339)),
 	}
-}
 
-func (l *Logger) Info(args ...interface{}) {
-	if l.LogLevel <= INFO {
-		mes := []string{"INFO: "}
-		for _, v := range args {
-			mes = append(mes, fmt.Sprint(v, " "))
-		}
-		l.log.Print(mes)
+	if err != nil {
+		fields = append(fields, zap.String("error", err.Error()))
+		l.log.Error("Request failed", fields...)
+		return
 	}
-}
 
-func (l *Logger) Warning(args ...interface{}) {
-	if l.LogLevel <= WARNING {
-		mes := []string{"WARNING: "}
-		for _, v := range args {
-			mes = append(mes, fmt.Sprint(v, " "))
+	if l.log.Core().Enabled(zap.DebugLevel) {
+		for key, values := range req.Header {
+			fields = append(fields, zap.String("header_"+key, values[0]))
 		}
-		l.log.Print(mes)
+		fields = append(fields, zap.String("body", "[LOG_BODY_IMPLEMENTATION]"))
 	}
-}
 
-func (l *Logger) Error(args ...interface{}) {
-	if l.LogLevel <= ERROR {
-		mes := []string{"ERROR: "}
-		for _, v := range args {
-			mes = append(mes, fmt.Sprint(v, " "))
-		}
-		l.log.Print(mes)
-	}
-}
-func (l *Logger) Fatal(args ...interface{}) {
-	if l.LogLevel <= FATAL {
-		mes := []string{"FATAL: "}
-		for _, v := range args {
-			mes = append(mes, fmt.Sprint(v, " "))
-		}
-		l.log.Print(mes)
-	}
+	l.log.Info("Request processed", fields...)
 }

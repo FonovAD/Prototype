@@ -28,3 +28,12 @@ func (s *server) WriteMetric(next http.Handler) http.Handler {
 		s.metricMonitor.IncRequestLatency(req.Method, req.URL.Path, time.Since(start).Seconds())
 	})
 }
+
+func (s *server) Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		lrw := NewLoggingResponseWriter(w)
+		next.ServeHTTP(lrw, req)
+		s.logger.LogRequest(req.Method, req.URL.Path, time.Since(start).Seconds())
+	})
+}
