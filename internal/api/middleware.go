@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"time"
 )
@@ -33,7 +35,14 @@ func (s *server) Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 		lrw := NewLoggingResponseWriter(w)
+		var body string
+		if req.Body != nil {
+			bodyBytes, _ := io.ReadAll(req.Body)
+			body = string(bodyBytes)
+			req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		}
+
 		next.ServeHTTP(lrw, req)
-		s.logger.LogRequest(req.Method, req.URL.Path, time.Since(start).Seconds())
+		s.logger.LogRequest(req.Method, req.URL.Path, lrw.statusCode, time.Since(start).Seconds(), body, nil)
 	})
 }

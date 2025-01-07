@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"net/http"
 	"time"
 
 	"go.uber.org/zap"
@@ -41,15 +40,17 @@ func New(logLevel string) *Logger {
 	return &Logger{log: logger}
 }
 
-func (l *Logger) LogRequest(req *http.Request, statusCode int, duration time.Duration, err error) {
+func (l *Logger) LogRequest(method string, path string, statusCode int, duration float64, body string, err error) {
 	fields := []zap.Field{
-		zap.String("method", req.Method),
-		zap.String("uri", req.URL.Path),
+		zap.String("method", method),
+		zap.String("uri", path),
 		zap.Int("status_code", statusCode),
-		zap.Duration("duration", duration),
+		zap.Duration("duration", time.Duration(duration*float64(time.Second))),
 		zap.String("timestamp", time.Now().Format(time.RFC3339)),
 	}
-
+	if body != "" {
+		fields = append(fields, zap.String("body", body))
+	}
 	if err != nil {
 		fields = append(fields, zap.String("error", err.Error()))
 		l.log.Error("Request failed", fields...)
@@ -57,10 +58,7 @@ func (l *Logger) LogRequest(req *http.Request, statusCode int, duration time.Dur
 	}
 
 	if l.log.Core().Enabled(zap.DebugLevel) {
-		for key, values := range req.Header {
-			fields = append(fields, zap.String("header_"+key, values[0]))
-		}
-		fields = append(fields, zap.String("body", "[LOG_BODY_IMPLEMENTATION]"))
+		fields = append(fields, zap.String("debug", "Headers and body not implemented"))
 	}
 
 	l.log.Info("Request processed", fields...)

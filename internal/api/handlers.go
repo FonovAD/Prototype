@@ -13,20 +13,16 @@ import (
 func (s *server) HandleHello() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
-			s.logger.Info(r.Method, r.RemoteAddr, " Unexpected HTTP Method")
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		s.logger.Info(r.Method, r.RemoteAddr)
 		w.WriteHeader(http.StatusOK)
 	}
 }
 
 func (s *server) ServerError(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
-	s.logger.Error(r.Method, r.URL.Path, err.Error())
 	s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusInternalServerError)
-	return
 }
 
 func (s *server) CreateUser() http.HandlerFunc {
@@ -35,7 +31,6 @@ func (s *server) CreateUser() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
@@ -53,7 +48,6 @@ func (s *server) CreateUser() http.HandlerFunc {
 		}
 		if user == nil || user.Role != models.ROLE_ADMIN {
 			w.WriteHeader(http.StatusForbidden)
-			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
 			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
 			return
 		}
@@ -69,7 +63,6 @@ func (s *server) CreateUser() http.HandlerFunc {
 			s.ServerError(w, r, err)
 			return
 		}
-		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -83,7 +76,6 @@ func (s *server) CreateLink() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
@@ -95,7 +87,6 @@ func (s *server) CreateLink() http.HandlerFunc {
 
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.logger.Info(r.Method, r.RemoteAddr, http.StatusUnprocessableEntity, err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
@@ -107,14 +98,12 @@ func (s *server) CreateLink() http.HandlerFunc {
 		}
 		if user == nil {
 			w.WriteHeader(http.StatusForbidden)
-			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
 			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
 			return
 		}
 		NewLink, err := s.store.Link().Create(r.Context(), user.UID, req.Link, "")
 		if err == sqlstore.InvalidLinkError {
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			s.logger.Info(r.Method, r.URL.Path, http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
 			s.ServerError(w, r, err)
@@ -127,7 +116,6 @@ func (s *server) CreateLink() http.HandlerFunc {
 			s.ServerError(w, r, err)
 			return
 		}
-		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -137,7 +125,6 @@ func (s *server) Link() http.HandlerFunc {
 
 		path := r.PathValue("path")
 		if path == "" {
-			s.logger.Info(r.Method, r.URL.Path, "Path is empty")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -147,7 +134,6 @@ func (s *server) Link() http.HandlerFunc {
 			s.ServerError(w, r, err)
 			return
 		}
-		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		http.Redirect(w, r, linkModel.OriginLink, http.StatusFound)
 	}
 }
