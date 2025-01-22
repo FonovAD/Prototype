@@ -153,6 +153,146 @@ func (s *server) Link() http.HandlerFunc {
 	}
 }
 
+func (s *server) DeleteLink() http.HandlerFunc {
+	type request struct {
+		Link string `json:"origin_link"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		auth := strings.Split(r.Header.Get("Authorization"), " ")
+		if len(auth) < 2 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.logger.Info(r.Method, r.RemoteAddr, http.StatusUnprocessableEntity, err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		token := auth[1]
+		user, err := s.store.User().GetByToken(r.Context(), token)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		if user == nil || user.Role != models.ROLE_ADMIN {
+			w.WriteHeader(http.StatusForbidden)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+			return
+		}
+
+		err = s.store.Link().Delete(r.Context(), req.Link)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (s *server) DeleteUser() http.HandlerFunc {
+	type request struct {
+		UID int `json:"user_ID"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		auth := strings.Split(r.Header.Get("Authorization"), " ")
+		if len(auth) < 2 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.logger.Info(r.Method, r.RemoteAddr, http.StatusUnprocessableEntity, err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		token := auth[1]
+		user1, err := s.store.User().GetByToken(r.Context(), token)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		user2, err := s.store.User().GetByUID(r.Context(), req.UID)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+
+		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || user1.Token != user2.Token {
+			w.WriteHeader(http.StatusForbidden)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+			return
+		}
+
+		err = s.store.User().Delete(r.Context(), user2.UID)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (s *server) ReActivateLink() http.HandlerFunc {
+	type request struct {
+		Link string `json:"origin_link"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		auth := strings.Split(r.Header.Get("Authorization"), " ")
+		if len(auth) < 2 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.logger.Info(r.Method, r.RemoteAddr, http.StatusUnprocessableEntity, err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		token := auth[1]
+		user, err := s.store.User().GetByToken(r.Context(), token)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		if user == nil {
+			w.WriteHeader(http.StatusForbidden)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+			return
+		}
+
+		err = s.store.Link().ReActivate(r.Context(), req.Link)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func (s *server) OutputHtml() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
