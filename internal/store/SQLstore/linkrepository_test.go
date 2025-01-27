@@ -129,3 +129,22 @@ func TestLinkRepository_Delete(t *testing.T) {
 	err = s.Link().Delete(ctxb, originLink)
 	assert.NoError(t, err)
 }
+
+func TestLinkRepository_DeleteByUser(t *testing.T) {
+	// databasePath := "./test"
+	db, teardown := sqlstore.SetupTestDB(t, "test")
+	defer teardown("users", "links")
+	s := sqlstore.New(db, time.Millisecond*100)
+	ctxb := context.Background()
+
+	u, err := s.User().Create(ctxb)
+	assert.NoError(t, err)
+
+	originLink := "http://hello.world"
+	shortLink := "http://world.hello"
+	_, err = s.Link().Create(ctxb, u.UID, originLink, shortLink)
+	assert.NoError(t, err)
+
+	err = s.Link().DeleteByUser(ctxb, originLink, u.UID)
+	assert.NoError(t, err)
+}
