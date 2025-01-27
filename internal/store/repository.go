@@ -23,5 +23,6 @@ type LinkRepository interface {
 	GetByShortLink(context.Context, string) (*models.Link, error)
 	ShortLinkExist(context.Context, string) (bool, error)
 	Delete(context.Context, string) error
+	DeleteByUser(context.Context, string, int) error
 	ReActivate(context.Context, string) error
 }

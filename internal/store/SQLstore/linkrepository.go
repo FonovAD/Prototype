@@ -182,6 +182,18 @@ func (l *LinkRepository) Delete(ctx context.Context, originLink string) error {
 	return nil
 }
 
+func (l *LinkRepository) DeleteByUser(ctx context.Context, originLink string, uid int) error {
+	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
+	defer cancel()
+	if err := l.store.db.QueryRowContext(ctx,
+		"DELETE FROM links WHERE OriginLink = $1 & UID = $2;",
+		originLink, uid,
+	).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (l *LinkRepository) ReActivate(ctx context.Context, originLink string) error {
 	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
 	defer cancel()

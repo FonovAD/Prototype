@@ -104,7 +104,7 @@ func TestServer_CreateUser(t *testing.T) {
 			ctxb := context.Background()
 			token := tc.prepare(ctxb, s.store)
 
-			req, _ := http.NewRequest(tc.httpMethod, "/create_user", nil)
+			req, _ := http.NewRequest(tc.httpMethod, "/user/create", nil)
 			req.Header.Set("Authorization", "token "+token)
 			s.ServeHTTP(rec, req)
 			assert.Equal(t, tc.expectedCode, rec.Code)
@@ -181,7 +181,7 @@ func TestServer_CreateLink(t *testing.T) {
 				assert.NoError(t, err)
 				return
 			}
-			req, _ := http.NewRequest(tc.httpMethod, "/create_link", bytes.NewReader(body))
+			req, _ := http.NewRequest(tc.httpMethod, "/link/create", bytes.NewReader(body))
 			req.Header.Set("Authorization", "token "+u.Token)
 			s.ServeHTTP(rec, req)
 			assert.Equal(t, tc.expectedCode, rec.Code)

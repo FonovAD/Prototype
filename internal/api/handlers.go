@@ -181,10 +181,23 @@ func (s *server) DeleteLink() http.HandlerFunc {
 			s.ServerError(w, r, err)
 			return
 		}
-		if user == nil || user.Role != models.ROLE_ADMIN {
+		if user == nil {
 			w.WriteHeader(http.StatusForbidden)
 			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
 			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+			return
+		}
+		if user.Role != models.ROLE_ADMIN {
+			err = s.store.Link().DeleteByUser(r.Context(), req.Link, user.UID)
+			if err != nil {
+				s.ServerError(w, r, err)
+				w.WriteHeader(http.StatusForbidden)
+				s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+				s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+				return
+			}
+			s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 
@@ -198,7 +211,7 @@ func (s *server) DeleteLink() http.HandlerFunc {
 	}
 }
 
-func (s *server) DeleteUser() http.HandlerFunc {
+func (s *server) DeleteUserByUID() http.HandlerFunc {
 	type request struct {
 		UID int `json:"user_ID"`
 	}
@@ -231,14 +244,64 @@ func (s *server) DeleteUser() http.HandlerFunc {
 			return
 		}
 
-		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || user1.Token != user2.Token {
+		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || user1.UID != req.UID {
 			w.WriteHeader(http.StatusForbidden)
 			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
 			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
 			return
 		}
 
-		err = s.store.User().Delete(r.Context(), user2.UID)
+		err = s.store.User().Delete(r.Context(), req.UID)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (s *server) DeleteUserByToken() http.HandlerFunc {
+	type request struct {
+		Token string `json:"user_token"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.logger.Info(r.Method, r.RemoteAddr, "Unexpected HTTP Method")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		auth := strings.Split(r.Header.Get("Authorization"), " ")
+		if len(auth) < 2 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.logger.Info(r.Method, r.RemoteAddr, http.StatusUnprocessableEntity, err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		token := auth[1]
+		user1, err := s.store.User().GetByToken(r.Context(), token)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+		user2, err := s.store.User().GetByToken(r.Context(), req.Token)
+		if err != nil {
+			s.ServerError(w, r, err)
+			return
+		}
+
+		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || user1.Token != req.Token {
+			w.WriteHeader(http.StatusForbidden)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+			return
+		}
+
+		err = s.store.User().Delete(r.Context(), req.Token)
 		if err != nil {
 			s.ServerError(w, r, err)
 			return
