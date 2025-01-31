@@ -43,17 +43,18 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) ConfigureRouter() {
-	s.router.HandleFunc("/hello", s.HandleHello())
-	s.router.HandleFunc("/user/create", s.CreateUser())
-	s.router.HandleFunc("/link/create", s.CreateLink())
-	s.router.HandleFunc("/short/{path}", s.Link())
 	s.router.HandleFunc("/", s.OutputHtml())
-	s.router.HandleFunc("/user/delete/uid", s.DeleteUserByUID())
-	s.router.HandleFunc("/user/delete/token", s.DeleteUserByToken())
-	s.router.HandleFunc("/link/delete", s.DeleteLink())
-	s.router.HandleFunc("/link/reactivate", s.ReActivateLink())
+	s.router.HandleFunc("/hello", s.HandleHello())
 	s.router.Handle("/metrics", promhttp.Handler())
 
+	s.router.HandleFunc("/user/create", s.CreateUser())
+	s.router.HandleFunc("/user/delete/uid", s.DeleteUserByUID())
+	s.router.HandleFunc("/user/delete/token", s.DeleteUserByToken())
+
+	s.router.HandleFunc("/link/create", s.CreateLink())
+	s.router.HandleFunc("/link/reactivate", s.ReActivateLink())
+	s.router.HandleFunc("/link/delete", s.DeleteLink())
+	s.router.HandleFunc("/short/{path}", s.Link())
 }
 
 func Start(cfg *config.Config, UseSQLite3 bool) error {

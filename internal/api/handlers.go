@@ -346,7 +346,7 @@ func (s *server) ReActivateLink() http.HandlerFunc {
 			return
 		}
 
-		err = s.store.Link().ReActivate(r.Context(), req.Link)
+		err = s.store.Link().ReActivate(r.Context(), req.Link, user.UID)
 		if err != nil {
 			s.ServerError(w, r, err)
 			return
