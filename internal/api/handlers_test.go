@@ -188,3 +188,229 @@ func TestServer_CreateLink(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_DeliteUserByToken(t *testing.T) {
+	testCases := []struct {
+		name         string
+		expectedCode int
+		httpMethod   string
+		prepare      func(context.Context, store.Store) (string, string)
+	}{
+		{
+			name:         "Admin & User",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, string) {
+
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return "test", u2.Token
+			},
+		},
+		{
+			name:         "User & Admin",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, string) {
+
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token, "test"
+			},
+		},
+		{
+			name:         "Admin & Admin",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, string) {
+				return "test", "test"
+			},
+		},
+		{
+			name:         "User1 & User1",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, string) {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				return u1.Token, u1.Token
+			},
+		},
+		{
+			name:         "User1 & User2",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, string) {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token, u2.Token
+			},
+		},
+		{
+			name:         "Unexpected http method",
+			expectedCode: http.StatusMethodNotAllowed,
+			httpMethod:   http.MethodGet,
+			prepare: func(ctx context.Context, s store.Store) (string, string) {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token, u2.Token
+			},
+		},
+	}
+	db, f := sqlstore.SetupTestDB(t, "test")
+	defer f()
+	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second), "127.0.0.1:80")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			ctxb := context.Background()
+			uToken1, uToken2 := tc.prepare(ctxb, s.store)
+			body, err := json.Marshal(map[string]string{"user_token": uToken2})
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(tc.httpMethod, "/user/delete/token", bytes.NewReader(body))
+			req.Header.Set("Authorization", "token "+uToken1)
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
+
+func TestServer_DeliteUserByUID(t *testing.T) {
+	testCases := []struct {
+		name         string
+		expectedCode int
+		httpMethod   string
+		prepare      func(context.Context, store.Store) (string, int)
+	}{
+		{
+			name:         "Admin & User",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, int) {
+				u1, err := s.User().GetByToken(ctx, "test")
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token, u2.UID
+			},
+		},
+		{
+			name:         "User & Admin",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, int) {
+				u1, err := s.User().GetByToken(ctx, "test")
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u2.Token, u1.UID
+			},
+		},
+		{
+			name:         "Admin & Admin",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, int) {
+				u1, err := s.User().GetByToken(ctx, "test")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return "test", u1.UID
+			},
+		},
+		{
+			name:         "User1 & User1",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, int) {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				return u1.Token, u1.UID
+			},
+		},
+		{
+			name:         "User1 & User2",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			prepare: func(ctx context.Context, s store.Store) (string, int) {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token, u2.UID
+			},
+		},
+		{
+			name:         "Unexpected http method",
+			expectedCode: http.StatusMethodNotAllowed,
+			httpMethod:   http.MethodGet,
+			prepare: func(ctx context.Context, s store.Store) (string, int) {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token, u2.UID
+			},
+		},
+	}
+	db, f := sqlstore.SetupTestDB(t, "test")
+	defer f()
+	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second), "127.0.0.1:80")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			ctxb := context.Background()
+			uToken1, uID2 := tc.prepare(ctxb, s.store)
+			body, err := json.Marshal(map[string]int{"user_ID": uID2})
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(tc.httpMethod, "/user/delete/uid", bytes.NewReader(body))
+			req.Header.Set("Authorization", "token "+uToken1)
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}

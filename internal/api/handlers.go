@@ -244,7 +244,7 @@ func (s *server) DeleteUserByUID() http.HandlerFunc {
 			return
 		}
 
-		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || user1.UID != req.UID {
+		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || (user1.UID != req.UID && user1.Role != models.ROLE_ADMIN) {
 			w.WriteHeader(http.StatusForbidden)
 			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
 			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
@@ -294,7 +294,7 @@ func (s *server) DeleteUserByToken() http.HandlerFunc {
 			return
 		}
 
-		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || user1.Token != req.Token {
+		if user1 == nil || user2 == nil || user2.Role == models.ROLE_ADMIN || (user1.Token != req.Token && user1.Role != models.ROLE_ADMIN) {
 			w.WriteHeader(http.StatusForbidden)
 			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
 			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
