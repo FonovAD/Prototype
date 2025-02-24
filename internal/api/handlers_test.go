@@ -197,7 +197,7 @@ func TestServer_DeliteUserByToken(t *testing.T) {
 		prepare      func(context.Context, store.Store) (string, string)
 	}{
 		{
-			name:         "Admin & User",
+			name:         "Admin removes User",
 			expectedCode: http.StatusOK,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, string) {
@@ -210,7 +210,7 @@ func TestServer_DeliteUserByToken(t *testing.T) {
 			},
 		},
 		{
-			name:         "User & Admin",
+			name:         "User removes Admin",
 			expectedCode: http.StatusForbidden,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, string) {
@@ -223,7 +223,7 @@ func TestServer_DeliteUserByToken(t *testing.T) {
 			},
 		},
 		{
-			name:         "Admin & Admin",
+			name:         "Admin removes Admin",
 			expectedCode: http.StatusForbidden,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, string) {
@@ -231,7 +231,7 @@ func TestServer_DeliteUserByToken(t *testing.T) {
 			},
 		},
 		{
-			name:         "User1 & User1",
+			name:         "User1 removes User1",
 			expectedCode: http.StatusOK,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, string) {
@@ -244,7 +244,7 @@ func TestServer_DeliteUserByToken(t *testing.T) {
 			},
 		},
 		{
-			name:         "User1 & User2",
+			name:         "User1 removes User2",
 			expectedCode: http.StatusForbidden,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, string) {
@@ -305,7 +305,7 @@ func TestServer_DeliteUserByUID(t *testing.T) {
 		prepare      func(context.Context, store.Store) (string, int)
 	}{
 		{
-			name:         "Admin & User",
+			name:         "Admin removes User",
 			expectedCode: http.StatusOK,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, int) {
@@ -321,7 +321,7 @@ func TestServer_DeliteUserByUID(t *testing.T) {
 			},
 		},
 		{
-			name:         "User & Admin",
+			name:         "User removes Admin",
 			expectedCode: http.StatusForbidden,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, int) {
@@ -337,7 +337,7 @@ func TestServer_DeliteUserByUID(t *testing.T) {
 			},
 		},
 		{
-			name:         "Admin & Admin",
+			name:         "Admin removes Admin",
 			expectedCode: http.StatusForbidden,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, int) {
@@ -349,7 +349,7 @@ func TestServer_DeliteUserByUID(t *testing.T) {
 			},
 		},
 		{
-			name:         "User1 & User1",
+			name:         "User1 removes User1",
 			expectedCode: http.StatusOK,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, int) {
@@ -362,7 +362,7 @@ func TestServer_DeliteUserByUID(t *testing.T) {
 			},
 		},
 		{
-			name:         "User1 & User2",
+			name:         "User1 removes User2",
 			expectedCode: http.StatusForbidden,
 			httpMethod:   http.MethodPost,
 			prepare: func(ctx context.Context, s store.Store) (string, int) {
@@ -409,6 +409,138 @@ func TestServer_DeliteUserByUID(t *testing.T) {
 			}
 			req, _ := http.NewRequest(tc.httpMethod, "/user/delete/uid", bytes.NewReader(body))
 			req.Header.Set("Authorization", "token "+uToken1)
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
+
+func TestServer_DeleteLink(t *testing.T) {
+	testCases := []struct {
+		name          string
+		expectedCode  int
+		httpMethod    string
+		payload       interface{}
+		preferredLink string
+		prepare       func(context.Context, store.Store) string
+	}{
+		{
+			name:         "User deletes own link",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = s.Link().Create(ctx, u.UID, "http://validLink.ru", "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u.Token
+			},
+		},
+		{
+			name:         "Admin deletes User link",
+			expectedCode: http.StatusOK,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = s.Link().Create(ctx, u.UID, "http://validLink.ru", "")
+
+				if err != nil {
+					t.Fatal(err)
+				}
+				return "test"
+			},
+		},
+		{
+			name:         "User1 deletes User2 link",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u1, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				u2, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = s.Link().Create(ctx, u2.UID, "http://validLink.ru", "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u1.Token
+			},
+		},
+		{
+			name:         "User deletes Admin link",
+			expectedCode: http.StatusForbidden,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				adm, err := s.User().GetByToken(ctx, "test")
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = s.Link().Create(ctx, adm.UID, "http://validLink.ru", "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u.Token
+			},
+		},
+		{
+			name:         "InvalidLink",
+			expectedCode: http.StatusUnprocessableEntity,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "invalidLink",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u.Token
+			},
+		},
+	}
+	db, f := sqlstore.SetupTestDB(t, "test")
+	defer f()
+	s := NewServer(logger.New("debug"), metric.NewTest(), sqlstore.New(db, 5*time.Second), "127.0.0.1:80")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			ctxb := context.Background()
+			token := tc.prepare(ctxb, s.store)
+
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(tc.httpMethod, "/link/delete", bytes.NewReader(body))
+			req.Header.Set("Authorization", "token "+token)
 			s.ServeHTTP(rec, req)
 			assert.Equal(t, tc.expectedCode, rec.Code)
 		})
