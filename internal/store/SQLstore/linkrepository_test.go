@@ -111,6 +111,25 @@ func TestLinkRepository_ShortLinkExist(t *testing.T) {
 	assert.True(t, exist)
 }
 
+func TestLinkRepository_ReActivate(t *testing.T) {
+	// databasePath := "./test"
+	db, teardown := sqlstore.SetupTestDB(t, "test")
+	defer teardown("users", "links")
+	s := sqlstore.New(db, time.Millisecond*100)
+	ctxb := context.Background()
+
+	u, err := s.User().Create(ctxb)
+	assert.NoError(t, err)
+
+	originLink := "http://hello.world"
+	shortLink := "http://world.hello"
+	_, err = s.Link().Create(ctxb, u.UID, originLink, shortLink)
+	assert.NoError(t, err)
+
+	err = s.Link().ReActivate(ctxb, originLink, u.UID)
+	assert.NoError(t, err)
+}
+
 func TestLinkRepository_Delete(t *testing.T) {
 	// databasePath := "./test"
 	db, teardown := sqlstore.SetupTestDB(t, "test")
