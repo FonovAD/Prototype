@@ -19,6 +19,21 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.ResponseWriter.WriteHeader(code)
 }
 
+func Cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusOK)
+			return
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *server) WriteMetric(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		start := time.Now()
