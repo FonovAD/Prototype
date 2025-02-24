@@ -47,16 +47,16 @@
     
     async function shortenLink() {
         try {
-            const response = await fetch('http://127.0.0.1:80/create_link', {
+            const response = await fetch("http://127.0.0.1:80/link/create", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': ` Token ${token.value}`
+                    'Authorization': "token " + token.value
                 },
-                body: JSON.stringify({ origin_link: url.value })
+                body: JSON.stringify({ origin_link: url.value }),
             });
 
-            
+            console.log(response.status)
             if (!response.ok) {
                 if (response.status == '500'){
                     throw new Error('Invalid token');
