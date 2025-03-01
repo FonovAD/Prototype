@@ -18,6 +18,7 @@ type LinkRepository struct {
 var (
 	InvalidLinkError = errors.New("The passed link is not valid")
 	ExistLinkError   = errors.New("The desired link already exists")
+	NoExistLinkError = errors.New("Such link does not exist")
 )
 
 // Заменить вызов двух функций на транзакцию
@@ -170,6 +171,23 @@ func (l *LinkRepository) ShortLinkExist(ctx context.Context, shortLink string) (
 	return false, nil
 }
 
+func (l *LinkRepository) LinkExistByLinkAndUser(ctx context.Context, originLink string, uid int) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
+	defer cancel()
+	var count int
+	if err := l.store.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM links WHERE OriginLink = $1 AND UID = $2;",
+		originLink,
+		uid,
+	).Scan(&count); err != nil {
+		return true, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (l *LinkRepository) Delete(ctx context.Context, originLink string) error {
 	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
 	defer cancel()
@@ -185,8 +203,15 @@ func (l *LinkRepository) Delete(ctx context.Context, originLink string) error {
 func (l *LinkRepository) DeleteByUser(ctx context.Context, originLink string, uid int) error {
 	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
 	defer cancel()
+	exist, err := l.LinkExistByLinkAndUser(ctx, originLink, uid)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return NoExistLinkError
+	}
 	if err := l.store.db.QueryRowContext(ctx,
-		"DELETE FROM links WHERE OriginLink = $1 & UID = $2;",
+		"DELETE FROM links WHERE OriginLink = $1 AND UID = $2;",
 		originLink,
 		uid,
 	).Err(); err != nil {
@@ -198,8 +223,15 @@ func (l *LinkRepository) DeleteByUser(ctx context.Context, originLink string, ui
 func (l *LinkRepository) ReActivate(ctx context.Context, originLink string, uid int) error {
 	ctx, cancel := context.WithTimeout(ctx, l.store.QueryTimeout)
 	defer cancel()
+	exist, err := l.LinkExistByLinkAndUser(ctx, originLink, uid)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return NoExistLinkError
+	}
 	if err := l.store.db.QueryRowContext(ctx,
-		"UPDATE links SET Status = $1 WHERE OriginLink = $2 & UID = $3;",
+		"UPDATE links SET Status = $1 WHERE OriginLink = $2 AND UID = $3;",
 		models.STATUS_ACTIVE,
 		originLink,
 		uid,
