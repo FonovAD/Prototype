@@ -21,6 +21,7 @@ type LinkRepository interface {
 	GetByUID(context.Context, int) ([]*models.Link, error)
 	GetByOriginLink(context.Context, string) (*models.Link, error)
 	GetByShortLink(context.Context, string) (*models.Link, error)
+	LinkExistByLinkAndUser(context.Context, string, int) (bool, error)
 	ShortLinkExist(context.Context, string) (bool, error)
 	Delete(context.Context, string) error
 	DeleteByUser(context.Context, string, int) error
