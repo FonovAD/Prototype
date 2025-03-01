@@ -189,11 +189,13 @@ func (s *server) DeleteLink() http.HandlerFunc {
 		}
 		if user.Role != models.ROLE_ADMIN {
 			err = s.store.Link().DeleteByUser(r.Context(), req.Link, user.UID)
-			if err != nil {
-				s.ServerError(w, r, err)
+			if err == sqlstore.NoExistLinkError {
 				w.WriteHeader(http.StatusForbidden)
-				s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+				s.logger.Info(r.Method, r.URL.Path, http.StatusUnprocessableEntity)
 				s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+				return
+			} else if err != nil {
+				s.ServerError(w, r, err)
 				return
 			}
 			s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
@@ -347,7 +349,11 @@ func (s *server) ReActivateLink() http.HandlerFunc {
 		}
 
 		err = s.store.Link().ReActivate(r.Context(), req.Link, user.UID)
-		if err != nil {
+		if err == sqlstore.NoExistLinkError {
+			w.WriteHeader(http.StatusForbidden)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+		} else if err != nil {
 			s.ServerError(w, r, err)
 			return
 		}
