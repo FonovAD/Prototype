@@ -189,14 +189,22 @@ func (s *server) DeleteLink() http.HandlerFunc {
 		}
 		if user.Role != models.ROLE_ADMIN {
 			err = s.store.Link().DeleteByUser(r.Context(), req.Link, user.UID)
-			if err == sqlstore.NoExistLinkError {
-				w.WriteHeader(http.StatusForbidden)
-				s.logger.Info(r.Method, r.URL.Path, http.StatusUnprocessableEntity)
-				s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
-				return
-			} else if err != nil {
-				s.ServerError(w, r, err)
-				return
+			if err != nil {
+				switch err {
+				case sqlstore.NoExistLinkError:
+					w.WriteHeader(http.StatusNotFound)
+					s.logger.Info(r.Method, r.URL.Path, http.StatusNotFound)
+					s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusNotFound)
+					return
+				case sqlstore.WrongUserError:
+					w.WriteHeader(http.StatusForbidden)
+					s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+					s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+					return
+				default:
+					s.ServerError(w, r, err)
+					return
+				}
 			}
 			s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 			w.WriteHeader(http.StatusOK)
@@ -204,7 +212,12 @@ func (s *server) DeleteLink() http.HandlerFunc {
 		}
 
 		err = s.store.Link().Delete(r.Context(), req.Link)
-		if err != nil {
+		if err == sqlstore.ExistLinkError {
+			w.WriteHeader(http.StatusNotFound)
+			s.logger.Info(r.Method, r.URL.Path, http.StatusNotFound)
+			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusNotFound)
+			return
+		} else if err != nil {
 			s.ServerError(w, r, err)
 			return
 		}
@@ -349,13 +362,22 @@ func (s *server) ReActivateLink() http.HandlerFunc {
 		}
 
 		err = s.store.Link().ReActivate(r.Context(), req.Link, user.UID)
-		if err == sqlstore.NoExistLinkError {
-			w.WriteHeader(http.StatusForbidden)
-			s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
-			s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
-		} else if err != nil {
-			s.ServerError(w, r, err)
-			return
+		if err != nil {
+			switch err {
+			case sqlstore.NoExistLinkError:
+				w.WriteHeader(http.StatusNotFound)
+				s.logger.Info(r.Method, r.URL.Path, http.StatusNotFound)
+				s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusNotFound)
+				return
+			case sqlstore.WrongUserError:
+				w.WriteHeader(http.StatusForbidden)
+				s.logger.Info(r.Method, r.URL.Path, http.StatusForbidden)
+				s.metricMonitor.IncErrorCount(r.Method, r.URL.Path, http.StatusForbidden)
+				return
+			default:
+				s.ServerError(w, r, err)
+				return
+			}
 		}
 		s.logger.Info(r.Method, r.URL.Path, http.StatusOK)
 		w.WriteHeader(http.StatusOK)

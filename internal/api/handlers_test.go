@@ -509,6 +509,29 @@ func TestServer_DeleteLink(t *testing.T) {
 				return u.Token
 			},
 		},
+		{
+			name:         "Incorrect link",
+			expectedCode: http.StatusNotFound,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "invalid link",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				adm, err := s.User().GetByToken(ctx, "test")
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = s.Link().Create(ctx, adm.UID, "http://validLink.ru", "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u.Token
+			},
+		},
 	}
 	db, f := sqlstore.SetupTestDB(t, "test")
 	defer f()
@@ -609,6 +632,29 @@ func TestServer_ReActivateLink(t *testing.T) {
 			httpMethod:   http.MethodPost,
 			payload: map[string]interface{}{
 				"origin_link": "http://validLink.ru",
+			},
+			prepare: func(ctx context.Context, s store.Store) string {
+				u, err := s.User().Create(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				adm, err := s.User().GetByToken(ctx, "test")
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = s.Link().Create(ctx, adm.UID, "http://validLink.ru", "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return u.Token
+			},
+		},
+		{
+			name:         "Incorrect link",
+			expectedCode: http.StatusNotFound,
+			httpMethod:   http.MethodPost,
+			payload: map[string]interface{}{
+				"origin_link": "invalid link",
 			},
 			prepare: func(ctx context.Context, s store.Store) string {
 				u, err := s.User().Create(ctx)
