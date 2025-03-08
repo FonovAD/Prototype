@@ -215,10 +215,10 @@ func (l *LinkRepository) Delete(ctx context.Context, originLink string) error {
 	if !exist {
 		return NoExistLinkError
 	}
-	if err := l.store.db.QueryRowContext(ctx,
+	if _, err := l.store.db.ExecContext(ctx,
 		"DELETE FROM links WHERE OriginLink = $1;",
 		originLink,
-	).Err(); err != nil {
+	); err != nil {
 		return err
 	}
 	return nil
@@ -241,11 +241,11 @@ func (l *LinkRepository) DeleteByUser(ctx context.Context, originLink string, ui
 	if !exist {
 		return WrongUserError
 	}
-	if err := l.store.db.QueryRowContext(ctx,
+	if _, err := l.store.db.ExecContext(ctx,
 		"DELETE FROM links WHERE OriginLink = $1 AND UID = $2;",
 		originLink,
 		uid,
-	).Err(); err != nil {
+	); err != nil {
 		return err
 	}
 	return nil
