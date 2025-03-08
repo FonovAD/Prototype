@@ -43,11 +43,16 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) ConfigureRouter() {
-	s.router.HandleFunc("/hello", s.HandleHello())
-	s.router.HandleFunc("/create_user", s.CreateUser())
-	s.router.HandleFunc("/create_link", s.CreateLink())
-	s.router.HandleFunc("/short/{path}", s.Link())
 	s.router.HandleFunc("/", s.OutputHtml())
+	s.router.HandleFunc("/hello", s.HandleHello())
+	s.router.HandleFunc("/user/create", s.CreateUser())
+	s.router.HandleFunc("/user/delete/uid", s.DeleteUserByUID())
+	s.router.HandleFunc("/user/delete/token", s.DeleteUserByToken())
+
+	s.router.HandleFunc("/link/create", s.CreateLink())
+	s.router.HandleFunc("/link/reactivate", s.ReActivateLink())
+	s.router.HandleFunc("/link/delete", s.DeleteLink())
+	s.router.HandleFunc("/short/{path}", s.Link())
 	s.router.Handle("/metrics", promhttp.Handler())
 }
 
@@ -71,9 +76,11 @@ func Start(cfg *config.Config, UseSQLite3 bool) error {
 	}
 	serv := NewServer(logger.New(cfg.API.LogLevel), metric.New(), db, cfg.API.URL)
 	// http.Handle("/metrics", promhttp.Handler())
+
 	servWithMiddleware := serv.WriteMetric(serv)
+	servWithCors := Cors(servWithMiddleware)
 	log.Print("Server started with param: ", cfg)
-	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.API.Host, cfg.API.Port), servWithMiddleware)
+	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.API.Host, cfg.API.Port), servWithCors)
 }
 
 func SetupDB(databasePath, schemaPath string) store.Store {
